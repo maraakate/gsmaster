@@ -298,11 +298,27 @@ const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wa
 #define	S2C_CHALLENGE		'c'
 #define	M2C_SERVERLST		'd'
 
+#define A2A_PING			'k'
+
+#define	S2M_SHUTDOWN		'C'
+
 static const unsigned char hw_msg[] =
-		{ 255, 'c', '\0' };
+		{ 255, S2C_CHALLENGE, '\0' };
 
 static const unsigned char qw_msg[] =
-		{ 'c', '\n' };
+		{ S2C_CHALLENGE, '\n' };
+
+static const unsigned char hw_server_msg[] =
+		{ 255, A2A_PING, '\0' };
+
+static const unsigned char qw_server_msg[] =
+		{ A2A_PING, '\0' };
+
+static const unsigned char hw_server_shutdown[] =
+		{ 255, S2M_SHUTDOWN, '\n' };
+
+static const unsigned char qw_server_shutdown[] =
+		{ S2M_SHUTDOWN, '\n' };
 
 static const unsigned char qspy_req_msg[] =
 		{ 'D', '\n' };
@@ -746,6 +762,36 @@ int My_Main (int argc, char **argv)
 								{
 									Con_DPrintf("[I] QuakeSpy master server query.\n");
 									SendUDPServerListToClient(&from, "quakeworld");
+								}
+								else if (memcmp(incoming, hw_server_msg, 3) == 0)
+								{
+									char serverName[64];
+
+									Con_DPrintf("[I] HexenWorld Server sending a ping.\n");
+									Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n",inet_ntoa(from.sin_addr), ntohs(from.sin_port));
+									AddServers_From_List_Execute(serverName, 0);
+								}
+								else if (memcmp(incoming, qw_server_msg, 2) == 0)
+								{
+									char serverName[64];
+
+									Con_DPrintf("[I] QuakeWorld Server sending a ping.\n");
+									Com_sprintf(serverName, sizeof(serverName), "%s:%d,quakeworld\n",inet_ntoa(from.sin_addr), ntohs(from.sin_port));
+									AddServers_From_List_Execute(serverName, 0);
+								}
+								else if (memcmp(incoming, hw_server_shutdown, 3) == 0)
+								{
+									char shutdownPacket[64];
+
+									Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\2", ntohs(from.sin_port));
+									HeartBeat(&from, shutdownPacket);
+								}
+								else if (memcmp(incoming, qw_server_shutdown, 2) == 0)
+								{
+									char shutdownPacket[64];
+
+									Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\2", ntohs(from.sin_port));
+									HeartBeat(&from, shutdownPacket);
 								}
 								else if(memcmp(incoming, qspy_req_msg, 2) == 0) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
 								{
@@ -2153,8 +2199,11 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(motdPort);
 	memset (&addr.sin_zero, 0, sizeof(addr.sin_zero));
-	
-	Com_sprintf(motd, sizeof(motd), OOB_SEQ"print\n\x02%s", fileBuffer);
+
+	if(gamename && gamename[0] != 0 && !stricmp(gamename, "quake2")) /* FS: Green Text special for Quake 2*/
+		Com_sprintf(motd, sizeof(motd), OOB_SEQ"print\n\x02%s", fileBuffer);
+	else
+		Com_sprintf(motd, sizeof(motd), OOB_SEQ"print\n%s", fileBuffer);
 
 	sendto(motdSocket, motd, DG_strlen(motd), 0, (struct sockaddr *)&addr, sizeof(addr));
 	free(fileBuffer);
