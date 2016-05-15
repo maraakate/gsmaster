@@ -1,10 +1,15 @@
 	Daikatana/GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
 
-Quickly, this is mainly for daikatana (but should work OK with older encode
+Quickly, this is mainly for Daikatana 1.3 (but should work OK with older encode
 type 0 gamespy enabled games).  Based off of Q2Master v1.1 by QwazyWabbit.
-Supports the TCP handshake, the secret key validation is ignored.  Probable
-exploits, this is one of my first times playing around with sockets.
-If you find some serious issues email me emoaddict15@gmail.com.
+Supports the TCP handshake.  Probable exploits, this is one of my first times
+playing around with sockets. If you find some serious issues email me
+emoaddict15@gmail.com.
+
+Also supports QW, Q2, HW and Q1.  This is the same master server in use
+for QDOS and Q2DOS for their server browsers.
+
+QuakeSpy QW emulation is also available.
 
 New command line switches:
  -sendack - by default gamespy doesn't not send this type of packet out.
@@ -38,8 +43,17 @@ New command line switches:
  This feature is included since this code could be modified to provide
  master services for other games.
 
--serverlist <filename> - Adds servers from a list.  Hostnames are supported.
-Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
+ -serverlist <filename> - Adds servers from a list.  Hostnames are supported.
+ Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
+
+ -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other
+  places.
+
+
+
+
+
+
 
 ... Original Readme...
 
