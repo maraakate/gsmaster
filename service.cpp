@@ -25,7 +25,8 @@
 //  AUTHOR: Craig Link - Microsoft Developer Support 
 // 
  
- 
+
+#ifdef WIN32 // FS: Not needed in non-windows
 #include <windows.h> 
 #include <stdio.h> 
 #include <stdlib.h> 
@@ -70,6 +71,10 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 //    main service thread.  When the this call returns, 
 //    the service has stopped, so exit. 
 // 
+#ifndef _CRTAPI1 /* FS: VS2005 Compatibility */
+#define _CRTAPI1 _cdecl
+#endif
+
 void _CRTAPI1 main(int argc, char **argv) 
 { 
     SERVICE_TABLE_ENTRY dispatchTable[] = 
@@ -122,7 +127,7 @@ void _CRTAPI1 main(int argc, char **argv)
         printf( "%s -remove           to remove the service\n", SZAPPNAME ); 
         printf( "%s -debug <params>   to run as a console app for debugging\n", SZAPPNAME ); 
         printf( "%s -ip x.x.x.x       to bind to a unique ip address\n", SZAPPNAME ); 
-        printf( "%s -port nnnnn       to bind to port address other than 27900\n", SZAPPNAME ); 
+        printf( "%s -port nnnnn       to bind to port address other than 27990\n", SZAPPNAME ); 
         printf( "\nStartServiceCtrlDispatcher being called.\n" ); 
         printf( "This may take several seconds.  Please wait.\n" ); 
  
@@ -335,7 +340,7 @@ VOID AddToMessageLog(LPTSTR lpszMsg)
                 NULL,                 // current user's SID 
                 2,                    // strings in lpszStrings 
                 0,                    // no bytes of raw data 
-                lpszStrings,          // array of error strings 
+                (const char **)lpszStrings,          // array of error strings 
                 NULL);                // no raw data 
  
             (VOID) DeregisterEventSource(hEventSource); 
@@ -602,4 +607,4 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize )
  
     return lpszBuf; 
 } 
-
+#endif // WIN32

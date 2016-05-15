@@ -1,3 +1,48 @@
+	Daikatana/GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
+
+Quickly, this is mainly for daikatana (but should work OK with older encode
+type 0 gamespy enabled games).  Based off of Q2Master v1.1 by QwazyWabbit.
+Supports the TCP handshake, the secret key validation is ignored.  Probable
+exploits, this is one of my first times playing around with sockets.
+If you find some serious issues email me emoaddict15@gmail.com.
+
+New command line switches:
+ -sendack - by default gamespy doesn't not send this type of packet out.
+            if you want to extend the courtesy of acknowleding the
+            heartbeat then enable this setting.
+
+ -quickvalidate - by default the master server requires 1 extra heartbeat
+                  and a successful ping request to be added to the query
+                  list.  Set this to allow any new server to show up
+                  immediately.
+
+
+ -validationrequired <1, 2, or 3> - Require validation from the challenge key
+                                    cross-checked with the games secure key.
+                                    1 - client list requests only.
+                                    2 - servers.
+                                    3 - clients and servers (recommended).
+
+ -timestamp <1 or 2> - Debug outputs are timestampped.  1 - for AM/PM.
+                       2 for military.
+
+ -heartbeatinterval <time in minutes> - Time in minutes for sending heartbeats.
+                                        Must be at least 1 minute.
+
+ -minimumheartbeats x - Minimum number of sucessful heartbeats that need to be
+                        sent before a server will be added to the list.
+
+ -tcpport - xxxxx causes server to bind to a particular TCP port for the
+ gamespy list query from clients. Default is 28900.
+ If you depart from this you need to communicate this to your users somehow.
+ This feature is included since this code could be modified to provide
+ master services for other games.
+
+-serverlist <filename> - Adds servers from a list.  Hostnames are supported.
+Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
+
+... Original Readme...
+
 			Quake 2 Master v1.1 by QwazyWabbit
 
 This program is a modification of R1ch's GloomMaster server.
