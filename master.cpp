@@ -755,13 +755,13 @@ int My_Main (int argc, char **argv)
 								if(memcmp(incoming, hw_msg, 3) == 0)
 								{
 									Con_DPrintf("[I] HexenWorld master server query.\n");
-									SendUDPServerListToClient(&from, "hexenworld");
+									SendUDPServerListToClient(&from, (char *)"hexenworld");
 
 								}
 								else if (memcmp(incoming, qw_msg, 2) == 0)
 								{
 									Con_DPrintf("[I] QuakeSpy master server query.\n");
-									SendUDPServerListToClient(&from, "quakeworld");
+									SendUDPServerListToClient(&from, (char *)"quakeworld");
 								}
 								else if (memcmp(incoming, hw_server_msg, 3) == 0)
 								{

@@ -1,4 +1,4 @@
-CC   = gcc
+CC   = gpp
 #STRIP= strip
 
 # whether to use CURL for HTTP List DL
@@ -8,13 +8,13 @@ CFLAGS = -g -Wall -Werror -O0
 # -O2 -DNDEBUG=1
 LIBS   =
 
-WCFLAGS = -I ../wat/inc
-WLFLAGS = -L../wat/lib -lwatt
+WCFLAGS = -Iwatt32/inc
+WLFLAGS = -Lwatt32/lib -lwatt
 
 ifeq ($(USE_CURL),yes)
 CFLAGS+= -DUSE_CURL
-CURLCFLAGS+= -I../libcurl/include
-CURLLFLAGS+= -L../libcurl/lib -lcurl
+CURLCFLAGS+= -Ilibcurl/include
+CURLLFLAGS+= -Llibcurl/lib -lcurl
 endif
 
 SERVER = master.o \
@@ -33,14 +33,7 @@ clean:
 
 gspydos.exe: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gspydos.exe
-#	$(STRIP) qdos.exe
 
-DO_AS=$(CC) -x assembler-with-cpp
-
-%.o: %.c
+%.o: %.cpp
 	$(CC) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@
-%.o: %.S
-	$(DO_AS) $(CFLAGS) -c $< -o $@
-%.o: %.s
-	$(DO_AS) $(CFLAGS) -c $< -o $@
 

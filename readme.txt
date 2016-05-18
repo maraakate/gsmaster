@@ -52,7 +52,8 @@ New command line switches:
 
 
 
-
+NOTES:  DJGPP port is currently broken.  Compiles and executes fine, but only
+        pings the last server in a large batch.
 
 
 ... Original Readme...
