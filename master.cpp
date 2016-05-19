@@ -302,8 +302,11 @@ const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wa
 
 #define	S2M_SHUTDOWN		'C'
 
-static const unsigned char hw_msg[] =
+static const unsigned char hw_hwq_msg[] =
 		{ 255, S2C_CHALLENGE, '\0' };
+
+static const unsigned char hw_gspy_msg[] =
+		{ 255, S2C_CHALLENGE, '\n' };
 
 static const unsigned char qw_msg[] =
 		{ S2C_CHALLENGE, '\n' };
@@ -330,6 +333,9 @@ static const unsigned char hw_reply_hdr[] =
 static const unsigned char qw_reply_hdr[] =
 		{ 255, 255, 255,
 		  255, M2C_SERVERLST, '\n' };
+
+static const unsigned char q2_reply_hdr[] =
+{ 255, 255, 255, 255, 's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
 
 void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename);
 
@@ -752,9 +758,15 @@ int My_Main (int argc, char **argv)
 							}
 							else
 							{
-								if(memcmp(incoming, hw_msg, 3) == 0)
+								if(memcmp(incoming, hw_hwq_msg, 3) == 0)
 								{
-									Con_DPrintf("[I] HexenWorld master server query.\n");
+									Con_DPrintf("[I] HexenWorld hwmquery master server query.\n");
+									SendUDPServerListToClient(&from, (char *)"hexenworld");
+
+								}
+								if(memcmp(incoming, hw_gspy_msg, 3) == 0)
+								{
+									Con_DPrintf("[I] HexenWorld GameSpy master server query.\n");
 									SendUDPServerListToClient(&from, (char *)"hexenworld");
 
 								}
@@ -1356,7 +1368,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		}
 	}
 
-	Con_DPrintf ("[I] list: %s\n", buff);
+//	Con_DPrintf ("[I] list: %s\n", buff);
 	Con_DPrintf ("[I] query response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 
 	if ((sendto (listener, buff, buflen, 0, (struct sockaddr *)from, sizeof(*from))) == SOCKET_ERROR)
@@ -1364,7 +1376,8 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		Con_DPrintf ("[E] list socket error on send! code %s.\n", NET_ErrorString());
 	}
 
-	Con_DPrintf ("[I] sent server list to client %s, servers: %u of %u\n",
+	Con_DPrintf ("[I] sent %s server list to client %s, servers: %u of %u\n",
+				gamename,
 				inet_ntoa (from->sin_addr),
 				servercount, /* sent */
 				numservers); /* on record */
@@ -1461,7 +1474,7 @@ void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *fr
 		buflen += 6;
 	}
 
-	Con_DPrintf ("[I] TCP gamespy list: %s\n", buff);
+//	Con_DPrintf ("[I] TCP gamespy list: %s\n", buff);
 	Con_DPrintf ("[I] TCP gamespy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 
 	if(send(socket, buff, buflen, 0) == SOCKET_ERROR)
@@ -1497,7 +1510,7 @@ void Ack (struct sockaddr_in *from, char* dataPacket)
 
 			server->last_heartbeat = (unsigned long)time(NULL);
 
-			if((server->gamename) && (!stricmp(server->gamename, "quake2") || !stricmp(server->gamename, "quakeworld") || !stricmp(server->gamename, "quake1"))) /* FS: These games are too old to send a challenge back. */
+			if((server->gamename) && (!stricmp(server->gamename, "quake2") || !stricmp(server->gamename, "quakeworld") || !stricmp(server->gamename, "quake1") || !stricmp(server->gamename, "hexenworld"))) /* FS: These games are too old to send a challenge back. */
 			{
 				server->validated = 1;
 			}
@@ -1662,7 +1675,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			inet_ntoa(from->sin_addr),
 			htons(from->sin_port),
 			dglen);
-		
+
 			SendUDPServerListToClient (from, "quake2");
 			return status;
 		}
@@ -1687,6 +1700,16 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	}
 	else
 	{
+		if(_strnicmp(data, "query", 5) == 0)
+		{
+			Con_DPrintf ("[I] %s:%d : query (%d bytes)\n",
+			inet_ntoa(from->sin_addr),
+			htons(from->sin_port),
+			dglen);
+
+			SendUDPServerListToClient (from, "quake2");
+			return status;
+		}
 		cmd +=1;
 	}
 
@@ -2827,9 +2850,19 @@ void HTTP_DL_List(void)
 	if(httpEnable)
 	{
 #ifdef USE_CURL
-		printf("[I] Serverlist download sceduled!\n");
+		printf("[I] HTTP serverlist download sceduled!\n");
 		CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt");
 		lastHTTPDL = (double)time(NULL);
 #endif
 	}
+}
+
+void Master_DL_List(void)
+{
+#if 0
+	struct sockaddr_in from;
+
+	printf("[I] UDP serverlist download scheduled!\n");
+	sendto(listener, OOBSEQ"getservers", 14, 0, (struct sockaddr *)from, sizeof(*from));
+#endif
 }
