@@ -62,11 +62,11 @@ extern "C" {
 //// todo: change to desired strings 
 //// 
 // name of the executable 
-#define SZAPPNAME            "dkmaster" 
+#define SZAPPNAME            "gsmaster" 
 // internal name of the service 
-#define SZSERVICENAME        "DKMasterServer" 
+#define SZSERVICENAME        "GSMasterServer" 
 // displayed name of the service 
-#define SZSERVICEDISPLAYNAME "Daikatana Master Server" 
+#define SZSERVICEDISPLAYNAME "GameSpy Master Server" 
 // list of service dependencies - "dep1\0dep2\0\0" 
 #define SZDEPENDENCIES       "\0\0" 
 ////////////////////////////////////////////////////////////////////////////// 

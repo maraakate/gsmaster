@@ -543,7 +543,7 @@ int My_Main (int argc, char **argv)
 #endif
 	struct sockaddr_in from;
 
-	printf ("Daikatana-GSPY-Master v%s.\nBased on Q2-Master 1.1 originally GloomMaster.\n(c) 2002-2003 r1ch.net, modifications by QwazyWabbit 2007.\n", VERSION);
+	printf ("GSMaster v%s.  A GameSpy Encode Type 0 Emulator and a Quake 1, QuakeWorld, HexenWorld, and Quake 2 Master Server.\nBased on Q2-Master 1.1 by QwazyWabbit.  Originally GloomMaster.\n(c) 2002-2003 r1ch.net. (c) 2007 by QwazyWabbit.\n", VERSION);
 	printf ("Built: %s at %s.\n\n", __DATE__, __TIME__);
 	numservers = 0;
 
@@ -1255,74 +1255,14 @@ void RunFrame (void)
 }
 
 //
-// This function assembles the serverstring preamble and 6 bytes for each
+// This function assembles the reply header preamble and 6 bytes for each
 // listed server into a buffer for transmission to the client in response
 // to a query frame.
 //
-#ifdef QUAKE2_SERVERS
-void SendServerListToClient (struct sockaddr_in *from)
-{
-	int				buflen;
-	char			*buff;
-	server_t		*server = &servers;
-	unsigned long	servercount;
-	unsigned long	bufsize;
-
-	// assume buffer size needed is for all current servers (numservers)
-	// and eligible servers in list will always be less or equal to numservers
-	
-	bufsize = 12 + 6 * (numservers + 1); // 12 bytes for serverstring, 6 bytes for game server ip and port
-	buflen = 0;
-	buff = malloc (bufsize);
-	assert(buff != NULL);	// catch it in debug
-
-	if (buff == NULL)
-	{
-		printf("Fatal Error: memory allocation failed in SendServerListToClient\n");
-		return;
-	}
-	
-	memset (buff, 0, bufsize);
-	memcpy (buff, serverstring, 12);	// 12 = length of serverstring
-	buflen += 12;
-	servercount = 0;
-
-	while (server->next)
-	{
-		server = server->next;
-
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated)
-		{
-			memcpy (buff + buflen, &server->ip.sin_addr, 4);
-			buflen += 4;
-			
-			memcpy (buff + buflen, &server->port, 2);
-			buflen += 2;
-			servercount++;
-		}
-	}
-
-	Con_DPrintf ("[I] list: %s\n", buff);
-	Con_DPrintf ("[I] query response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-
-	if ((sendto (listener, buff, buflen, 0, (struct sockaddr *)from, sizeof(*from))) == SOCKET_ERROR)
-	{
-		Con_DPrintf ("[E] list socket error on send! code %s.\n", NET_ErrorString());
-	}
-	
-	Con_DPrintf ("[I] sent server list to client %s, servers: %u of %u\n", 
-				inet_ntoa (from->sin_addr), 
-				servercount, /* sent */
-				numservers); /* on record */
-
-	free(buff);
-}
-#endif // QUAKE2_SERVERS
-
 void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 {
 	int				buflen;
-	int				updheadersize;
+	int				udpheadersize;
 	char			*buff;
 	char			*udpheader;
 	server_t		*server = &servers;
@@ -1339,8 +1279,8 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 
 	if(!stricmp(gamename, "hexenworld"))
 	{
-		updheadersize = sizeof(hw_reply_hdr) + 1;
-		udpheader = (char *)malloc(updheadersize);
+		udpheadersize = sizeof(hw_reply_hdr) + 1;
+		udpheader = (char *)malloc(udpheadersize);
 		assert(udpheader != NULL);
 
 		if(udpheader == NULL)
@@ -1348,13 +1288,13 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memset(udpheader, 0, updheadersize);
+		memset(udpheader, 0, udpheadersize);
 		memcpy(udpheader, hw_reply_hdr, sizeof(hw_reply_hdr));
 	}
 	else if (!stricmp(gamename, "quakeworld"))
 	{
-		updheadersize = sizeof(qw_reply_hdr) + 1;
-		udpheader = (char *)malloc(updheadersize);
+		udpheadersize = sizeof(qw_reply_hdr) + 1;
+		udpheader = (char *)malloc(udpheadersize);
 		assert(udpheader != NULL);
 
 		if(udpheader == NULL)
@@ -1362,8 +1302,22 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memset(udpheader, 0, updheadersize);
+		memset(udpheader, 0, udpheadersize);
 		memcpy(udpheader, qw_reply_hdr, sizeof(qw_reply_hdr));
+	}
+	else if (!stricmp(gamename, "quake2"))
+	{
+		udpheadersize = sizeof(q2_reply_hdr) + 1;
+		udpheader = (char*)malloc(udpheadersize);
+		assert(udpheader != NULL);
+
+		if(udpheader == NULL)
+		{
+			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
+			return;
+		}
+		memset(udpheader, 0, udpheadersize);
+		memcpy(udpheader, q2_reply_hdr, sizeof(q2_reply_hdr));
 	}
 	else
 	{
@@ -1371,7 +1325,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		return;
 	}
 
-	bufsize = (updheadersize) + 6 * (numservers + 1); // 12 bytes for serverstring, 6 bytes for game server ip and port
+	bufsize = (udpheadersize) + 6 * (numservers + 1); // n bytes for the reply header, 6 bytes for game server ip and port
 	buflen = 0;
 	buff = (char *)malloc (bufsize);
 	assert(buff != NULL);	// catch it in debug
@@ -1383,8 +1337,8 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 	}
 
 	memset (buff, 0, bufsize);
-	memcpy (buff, udpheader, updheadersize-1);	// 12 = length of serverstring
-	buflen += (updheadersize-1);
+	memcpy (buff, udpheader, udpheadersize-1);	// n = length of the reply header
+	buflen += (udpheadersize-1);
 	servercount = 0;
 
 	while (server->next)
@@ -1693,72 +1647,78 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	char *line = data;
 	int	status = TRUE;
 
-#ifdef QUAKE2_SERVERS
-	if (_strnicmp (data, "query", 5) == 0 || _strnicmp (data, OOB_SEQ"getservers", 14) == 0 ) // FS: For requesting to old-style Quake 2 master utilites.
+	while (*line && *line != '\n')
 	{
-		Con_DPrintf ("[I] %s:%d : query (%d bytes)\n",
+		line++;
+	}
+		
+	*(line++) = '\0';
+
+	if(strstr(data, OOB_SEQ)) // FS: Gamespy doesn't send the 0xFF out-of-band.
+	{
+		if(_strnicmp(data, OOB_SEQ"query", 9) == 0 || _strnicmp(data, OOB_SEQ"getservers", 14) == 0)
+		{
+			Con_DPrintf ("[I] %s:%d : query (%d bytes)\n",
 			inet_ntoa(from->sin_addr),
 			htons(from->sin_port),
 			dglen);
 		
-		SendServerListToClient (from);
+			SendUDPServerListToClient (from, "quake2");
+			return status;
+		}
+		else if(_strnicmp(data, OOB_SEQ"rcon", 8) == 0)
+		{
+			cmd +=9;
+			status = Rcon(from, cmd);
+			return status;
+		}
+		else if (_strnicmp(data, OOB_SEQ"heartbeat", 13) == 0)
+		{
+			char q2heartbeat[96];
+
+			Com_sprintf(q2heartbeat, sizeof(q2heartbeat), "heartbeat\\%d\\gamename\\quake2", ntohs(from->sin_port));
+			status = HeartBeat(from, q2heartbeat);
+			return status;
+		}
+		else
+		{
+			cmd +=4;
+		}
 	}
 	else
-#endif // QUAKE2_SERVERS
 	{
-		while (*line && *line != '\n')
-		{
-			line++;
-		}
-		
-		*(line++) = '\0';
-
-		if(strstr(data, OOB_SEQ)) // FS: Gamespy doesn't send the 0xFF out-of-band.
-		{
-			if(_strnicmp(data, OOB_SEQ"rcon", 8))
-			{
-				cmd +=4;
-			}
-			else
-			{
-				cmd +=9;
-				status = Rcon(from, cmd);
-			}
-		}
-		else
-		{
-			cmd +=1;
-		}
-
-		Con_DPrintf ("[I] %s: %s:%d (%d bytes)\n",
-			cmd,
-			inet_ntoa(from->sin_addr),htons(from->sin_port),
-			dglen);
-		
-		if (_strnicmp (cmd, "ping", 4) == 0)
-		{
-			// FS: Do nothing, gamespy doesn't care about this
-//			status = AddServer (from, 1, htons(from->sin_port), "ping");
-		}
-		else if (_strnicmp (cmd, "heartbeat", 9) == 0) // FS: Gamespy only responds to "heartbeat", print is Q2
-		{
-			status = HeartBeat (from, cmd);
-		}
-		else if ( (strncmp (cmd, "ack", 3) == 0))
-		{
-			Ack (from, data);
-		}
-		else if (_strnicmp (cmd, "shutdown", 8) == 0)
-		{
-			QueueShutdown (from, NULL);
-		}
-		else
-		{
-//			Con_DPrintf ("[W] Unknown command from %s!\n", inet_ntoa (from->sin_addr));
-			// FS: Assume anything else passed in here is some ack from a heartbeat or \\status\\secure\\<key>
-			Ack(from, data);
-		}
+		cmd +=1;
 	}
+
+	Con_DPrintf ("[I] %s: %s:%d (%d bytes)\n",
+		cmd,
+		inet_ntoa(from->sin_addr),htons(from->sin_port),
+		dglen);
+
+	if (_strnicmp (cmd, "ping", 4) == 0)
+	{
+		// FS: Do nothing, gamespy doesn't care about this
+//		status = AddServer (from, 1, htons(from->sin_port), "ping");
+	}
+	else if (_strnicmp (cmd, "heartbeat", 9) == 0) // FS: Gamespy only responds to "heartbeat", print is Q2
+	{
+		status = HeartBeat (from, cmd);
+	}
+	else if ( (strncmp (cmd, "ack", 3) == 0))
+	{
+		Ack (from, data);
+	}
+	else if (_strnicmp (cmd, "shutdown", 8) == 0)
+	{
+		QueueShutdown (from, NULL);
+	}
+	else
+	{
+//		Con_DPrintf ("[W] Unknown command from %s!\n", inet_ntoa (from->sin_addr));
+		// FS: Assume anything else passed in here is some ack from a heartbeat or \\status\\secure\\<key>
+		Ack(from, data);
+	}
+
 	return status;
 }
 

@@ -55,7 +55,7 @@
 
 // Out of band data preamble
 #define OOB_SEQ "\xff\xff\xff\xff" //32 bit integer (-1) as string sequence for out of band data
-#define serverstring OOB_SEQ"servers " // 12 bytes for the serverstring header
+#define q2_reply_hdr OOB_SEQ"servers " // 12 bytes for the serverstring header
 
 extern int Debug;
 extern int Timestamp;
