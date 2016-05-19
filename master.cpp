@@ -276,14 +276,16 @@ char bind_ip[KEY_LEN] = "0.0.0.0"; // default IP to bind
 char bind_port[KEY_LEN] = "27900";	// default port to bind
 char bind_port_tcp[KEY_LEN] = "28900";	// FS: default TCP port to bind
 char serverlist_filename[MAX_PATH] = ""; // FS: For a list of servers to add at startup
+char masterserverlist_filename[MAX_PATH] = ""; /* FS: For a list of master servers to add at startup */
 int load_Serverlist = 0;
+int load_MasterServerlist = 0;
 
 int validate_newserver_immediately = 0; // FS
 int validation_required = 0; // FS
 int motd = 0; // FS
 int logTCP = 0;
 unsigned int minimumHeartbeats = 2; // FS: Minimum amount of heartbeats required before we're added to the list, used to verify it's a real server.
-double lastHTTPDL = 0; // FS
+double lastMasterListDL = 0; // FS
 
 // FS: For gamespy list
 const char listheader[] = "\\";
@@ -334,6 +336,10 @@ static const unsigned char qw_reply_hdr[] =
 		{ 255, 255, 255,
 		  255, M2C_SERVERLST, '\n' };
 
+static const unsigned char qw_reply_hdr2[] =
+		{ 255, 255, 255,
+		  255, M2C_SERVERLST, '\0' };
+
 static const unsigned char q2_reply_hdr[] =
 { 255, 255, 255, 255, 's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
 
@@ -344,6 +350,8 @@ const char challengeHeader[] = "\\basic\\\\secure\\"; // FS: This is the start o
 
 int Rcon (struct sockaddr_in *from, char *queryString);
 void HTTP_DL_List(void);
+void Master_DL_List(char *filename);
+void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size);
 
 /* FS: Set a socket to be non-blocking */
 #ifdef _WIN32
@@ -655,6 +663,11 @@ int My_Main (int argc, char **argv)
 	CURL_HTTP_Init();
 	HTTP_DL_List();
 
+	if (load_MasterServerlist)
+	{
+		Master_DL_List(masterserverlist_filename);
+	}
+
 	if(load_Serverlist)
 	{
 		Add_Servers_From_List(serverlist_filename);
@@ -667,9 +680,14 @@ int My_Main (int argc, char **argv)
 
 		CURL_HTTP_Update();
 
-		if(time(NULL)-lastHTTPDL > 3600) // FS: Every hour get a new serverlist from quakeservers.net
+		if(time(NULL)-lastMasterListDL > 3600) // FS: Every hour get a new serverlist from quakeservers.net
 		{
 			HTTP_DL_List();
+
+			if (load_MasterServerlist)
+			{
+				Master_DL_List(masterserverlist_filename);
+			}
 		}
 
 #ifdef OLDER_STYLE_PARSE
@@ -1658,6 +1676,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 {
 	char *cmd = data;
 	char *line = data;
+	unsigned char *mslist = (unsigned char *)data;
 	int	status = TRUE;
 
 	while (*line && *line != '\n')
@@ -1669,7 +1688,25 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 
 	if(strstr(data, OOB_SEQ)) // FS: Gamespy doesn't send the 0xFF out-of-band.
 	{
-		if(_strnicmp(data, OOB_SEQ"query", 9) == 0 || _strnicmp(data, OOB_SEQ"getservers", 14) == 0)
+//		printf("Got OOB_SEQ\n");
+
+		if(_strnicmp(data, (char *)q2_reply_hdr, sizeof(q2_reply_hdr)) == 0)
+		{
+			Con_DPrintf("[I] Got a Quake 2 master server list!\n");
+
+			mslist += sizeof(q2_reply_hdr);
+			Parse_UDP_MS_List (mslist, "quake2", dglen-sizeof(q2_reply_hdr));
+			return status;
+		}
+		else if (_strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) == 0) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
+		{
+			Con_DPrintf("[I] Got a QuakeWorld master server list!\n");
+
+			mslist += sizeof(qw_reply_hdr);
+			Parse_UDP_MS_List (mslist, "quakeworld", dglen-sizeof(qw_reply_hdr));
+			return status;
+		}
+		else if(_strnicmp(data, OOB_SEQ"query", 9) == 0 || _strnicmp(data, OOB_SEQ"getservers", 14) == 0)
 		{
 			Con_DPrintf ("[I] %s:%d : query (%d bytes)\n",
 			inet_ntoa(from->sin_addr),
@@ -1887,6 +1924,16 @@ void ParseCommandLine(int argc, char **argv)
 			DG_strlcpy(serverlist_filename, (char *)argv[i] + 12, sizeof(serverlist_filename));
 #endif
 			load_Serverlist = 1;
+		}
+
+		if(_strnicmp((char*)argv[i] + 1,"masterlist", 10) == 0) // FS
+		{
+#ifdef __DJGPP__
+			DG_strlcpy(masterserverlist_filename, (char *)argv[i+1], sizeof(masterserverlist_filename));
+#else
+			DG_strlcpy(masterserverlist_filename, (char *)argv[i] + 12, sizeof(masterserverlist_filename));
+#endif
+			load_MasterServerlist = 1;
 		}
 
 		if(_strnicmp((char*)argv[i] + 1,"motd", 4) == 0) /* FS: Added motd.txt support */
@@ -2850,19 +2897,216 @@ void HTTP_DL_List(void)
 	if(httpEnable)
 	{
 #ifdef USE_CURL
-		printf("[I] HTTP serverlist download sceduled!\n");
+		printf("[I] HTTP master server list download sceduled!\n");
 		CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt");
-		lastHTTPDL = (double)time(NULL);
+		lastMasterListDL = (double)time(NULL);
 #endif
 	}
 }
 
-void Master_DL_List(void)
+void Master_DL_List (char *filename)
 {
-#if 0
+	char *fileBuffer = NULL;
+	char *gamenameFromHttp = NULL;
+	char *ip = NULL;
+	char *listToken = NULL;
+	char *listPtr = NULL;
+	char separators[] = ",:\n";
+	unsigned short queryPort = 0;
+	struct hostent *remoteHost;
+	struct in_addr addr;
 	struct sockaddr_in from;
+	size_t ipStrLen = 0;
 
-	printf("[I] UDP serverlist download scheduled!\n");
-	sendto(listener, OOBSEQ"getservers", 14, 0, (struct sockaddr *)from, sizeof(*from));
-#endif
+	long fileSize;
+	FILE *listFile = fopen(filename, "r+");
+	size_t toEOF = 0;
+
+	Con_DPrintf("[I] UDP master server list download scheduled!\n");
+	lastMasterListDL = (double)time(NULL);
+
+	if(!listFile)
+	{
+		printf("[E] Cannot open file '%s'.\n", filename);
+		return;
+	}
+
+	fseek(listFile, 0, SEEK_END);
+	fileSize = ftell(listFile);
+
+	// FS: If the file size is less than 3 (an emtpy serverlist file) then don't waste time.
+	if (fileSize < 3)
+	{
+		printf("[E] File '%s' is emtpy!\n", filename);
+		fclose(listFile);
+		return;
+	}
+	else
+	{
+		fseek(listFile, fileSize-1, SEEK_SET);
+	}
+
+	rewind(listFile);
+	fileBuffer = (char *)malloc(sizeof(char)*(fileSize+2)); // FS: In case we have to add a newline terminator
+	assert(fileBuffer);
+
+	if(!fileBuffer)
+	{
+		printf("[E] Out of memory!\n");
+		return;
+	}
+
+	toEOF = fread(fileBuffer, sizeof(char), fileSize, listFile); // FS: Copy it to a buffer
+	fclose(listFile);
+
+	if(toEOF <= 0)
+	{
+		printf("[E] Cannot read file '%s' into memory!\n", filename);
+		return;
+	}
+
+	// FS: Add newline terminator for some paranoia
+	fileBuffer[toEOF] = '\n';
+	fileBuffer[toEOF+1] = '\0';
+
+	listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
+
+	if(!listToken)
+	{
+		return;
+	}
+
+	while(listToken)
+	{
+		ipStrLen = DG_strlen(listToken)+2;
+		ip = (char *)malloc(sizeof(char)*(ipStrLen));
+
+		if(!ip)
+		{
+			printf("Memory error in AddServers_From_List_Execute!\n");
+			break;
+		}
+
+		DG_strlcpy(ip, listToken, ipStrLen);
+		remoteHost = gethostbyname(ip);
+
+		// FS: Junk data, or doesn't exist.
+		if (!remoteHost)
+		{
+			Con_DPrintf("[E] Could not resolve '%s' in server list; skipping.\n", ip);
+			break;
+		}
+		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
+
+		listToken = DK_strtok_r(NULL, separators, &listPtr); // Port
+
+		if(!listToken)
+		{
+			Con_DPrintf("[E] Port not specified for '%s' in server list; skipping.\n", ip);
+			break;
+		}
+
+		queryPort = (unsigned short)atoi(listToken);
+
+		if(atoi(listToken) <= 0 || atoi(listToken) > 65536)
+		{
+			Con_DPrintf("[E] Invalid Port specified for '%s' in server list; skipping.\n", ip);
+			break;
+		}
+
+		listToken = DK_strtok_r(NULL, separators, &listPtr); // Gamename
+
+		if(!listToken)
+		{
+			Con_DPrintf("[E] Gamename not specified for '%s:%u' in server list; skipping.\n", ip, queryPort);
+			break;
+		}
+
+		memset(&from, 0, sizeof(from));
+		from.sin_addr.s_addr = addr.s_addr;
+		from.sin_family = AF_INET;
+		from.sin_port = htons(queryPort);
+
+		if(!strcmp(listToken, "quakeworld"))
+		{
+			sendto(listener, (char *)qw_msg, sizeof(qw_msg), 0, (struct sockaddr *)&from, sizeof(from));
+		}
+		else if(!strcmp(listToken, "hexenworld"))
+		{
+			sendto(listener, (char *)hw_gspy_msg, sizeof(hw_gspy_msg), 0, (struct sockaddr *)&from, sizeof(from));
+			sendto(listener, (char *)hw_hwq_msg, sizeof(hw_hwq_msg), 0, (struct sockaddr *)&from, sizeof(from));
+		}
+		else if (!strcmp(listToken, "quake2"))
+		{
+			sendto(listener, OOB_SEQ"getservers", 14, 0, (struct sockaddr *)&from, sizeof(from));
+		}
+		else
+		{
+			Con_DPrintf("[E] Invalid gamename for Master Server Query: %s!\n", listToken);
+		}
+
+		listToken = DK_strtok_r(NULL, separators, &listPtr); /* FS: Play it again, Sam. */
+	}
+	free(fileBuffer);
+}
+
+/* FS: Readapted from HWMQuery by sezero */
+void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
+{
+	unsigned short port = 0;
+	char ip[128];
+	struct in_addr addr;
+	struct sockaddr_in from;
+	struct hostent *remoteHost;
+
+	if(!tmp)
+	{
+		Con_DPrintf("[E] Parse_UDP_MS_List: No data to parse!\n");
+		return;
+	}
+
+	if(!gamename)
+	{
+		Con_DPrintf("[E] Parse_UDP_MS_List: Gamename not specified!\n");
+		return;
+	}
+
+	if(size < 6)
+	{
+		Con_DPrintf("[E] Parse_UDP_MS_List: Invalid packet size!\n");
+		return;
+	}
+
+//	printf ("size: %i\n", size);
+
+	/* each address is 4 bytes (ip) + 2 bytes (port) == 6 bytes */
+//	printf (" %d entries\n", (int)size / 6);
+	if (size % 6 != 0)
+		printf ("Warning: not counting truncated last entry\n");
+	while (size >= 6)
+	{
+		port = ntohs (tmp[4] + (tmp[5] << 8));
+//		printf ("%u.%u.%u.%u:%u\n", tmp[0], tmp[1], tmp[2], tmp[3], port);
+
+		Com_sprintf(ip, sizeof(ip), "%u.%u.%u.%u", tmp[0],tmp[1],tmp[2],tmp[3]);
+
+		remoteHost = gethostbyname(ip);
+		// FS: Junk data, or doesn't exist.
+		if (!remoteHost)
+		{
+			Con_DPrintf("[E] Parse_UDP_MS_List: Could not resolve ip: %s!\n", ip);
+			return;
+		}
+
+		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
+
+		memset(&from, 0, sizeof(from));
+		from.sin_addr.s_addr = addr.s_addr;
+		from.sin_family = AF_INET;
+		from.sin_port = htons(port);
+		AddServer(&from, 0, htons(port), gamename, ip);
+
+		tmp += 6;
+		size -= 6;
+	}
 }

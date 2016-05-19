@@ -1,4 +1,5 @@
-	Daikatana/GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
+	    GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
+                Various code snippets by sezero and aluigi
 
 Quickly, this is mainly for Daikatana 1.3 (but should work OK with older encode
 type 0 gamespy enabled games).  Based off of Q2Master v1.1 by QwazyWabbit.
@@ -38,18 +39,21 @@ New command line switches:
                         sent before a server will be added to the list.
 
  -tcpport - xxxxx causes server to bind to a particular TCP port for the
- gamespy list query from clients. Default is 28900.
- If you depart from this you need to communicate this to your users somehow.
- This feature is included since this code could be modified to provide
- master services for other games.
+  gamespy list query from clients. Default is 28900.
+  If you depart from this you need to communicate this to your users somehow.
+  This feature is included since this code could be modified to provide
+  master services for other games.
 
  -serverlist <filename> - Adds servers from a list.  Hostnames are supported.
- Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
+  Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
 
  -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other
   places.
 
-
+ -masterlist <filename> - Adds master servers from a list.  Every hour
+  GSMaster will ping these servers to grab their lists.
+  Hostnames are supported.
+  Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27900,quakeworld.
 
 
 NOTES:  DJGPP port is currently broken.  Compiles and executes fine, but only
