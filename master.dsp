@@ -93,6 +93,22 @@ LINK32=link.exe
 SOURCE=.\readme.txt
 # End Source File
 # End Group
+# Begin Group "aluigi"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\enctype1_decoder.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\enctype_shared.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsmalg.cpp
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\curl_dl.cpp
@@ -116,10 +132,6 @@ SOURCE=.\dk_essentials.h
 # Begin Source File
 
 SOURCE=.\gamestable.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsmalg.cpp
 # End Source File
 # Begin Source File
 

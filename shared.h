@@ -19,7 +19,7 @@
 
 #define KEY_LEN 32	// give us some space
 #define MAXPENDING 16 // FS: Max pending TCP connections
-#define MAX_INCOMING_LEN 2800 /* FS: made this a #define.  Gamespy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
+#define MAX_INCOMING_LEN 4000 /* FS: made this a #define.  Gamespy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
 #define MAX_GAMENAME_LEN 16 // FS: Max gamename length used for game table and server structs
 #define DEFAULTHEARTBEAT 5*60 // FS: 5 minutes
 

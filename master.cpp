@@ -2246,6 +2246,7 @@ void Gamespy_Parse_List_Request(char *querystring, int socket, struct sockaddr_i
 {
 	char *gamename = NULL;
 	char *tokenPtr = NULL;
+	char *clientName = NULL;
 	char seperators[] = "\\";
 	char logBuffer[2048];
 	int basic = 0;
@@ -2254,6 +2255,14 @@ void Gamespy_Parse_List_Request(char *querystring, int socket, struct sockaddr_i
 	{
 		goto error;
 	}
+
+
+	/* FS: Unofficial nastyness in DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
+	clientName = Info_ValueForKey(querystring, "clientname");
+	if(clientName)
+		Con_DPrintf("[I] ClientName: %s\n", clientName);
+	else
+		clientName = "Unknown User";
 
 	if(strstr(querystring,"\\list\\cmp\\gamename\\"))
 	{
@@ -2300,7 +2309,7 @@ error:
 
 	if(logTCP)
 	{
-		Com_sprintf(logBuffer, sizeof(logBuffer), "Sucessful GameSpy request for %s from %s:%d\n", gamename, inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+		Com_sprintf(logBuffer, sizeof(logBuffer), "Sucessful GameSpy request to %s for %s from %s:%d\n", clientName, gamename, inet_ntoa(from->sin_addr), ntohs(from->sin_port));
 		Log_Sucessful_TCP_Connections(logBuffer);
 	}
 
