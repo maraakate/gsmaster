@@ -2242,11 +2242,10 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 }
 
 // FS
-void Gamespy_Parse_List_Request(char *querystring, int socket, struct sockaddr_in *from)
+void Gamespy_Parse_List_Request(char *clientName, char *querystring, int socket, struct sockaddr_in *from)
 {
 	char *gamename = NULL;
 	char *tokenPtr = NULL;
-	char *clientName = NULL;
 	char seperators[] = "\\";
 	char logBuffer[2048];
 	int basic = 0;
@@ -2255,14 +2254,6 @@ void Gamespy_Parse_List_Request(char *querystring, int socket, struct sockaddr_i
 	{
 		goto error;
 	}
-
-
-	/* FS: Unofficial nastyness in DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
-	clientName = Info_ValueForKey(querystring, "clientname");
-	if(clientName)
-		Con_DPrintf("[I] ClientName: %s\n", clientName);
-	else
-		clientName = "Unknown User";
 
 	if(strstr(querystring,"\\list\\cmp\\gamename\\"))
 	{
@@ -2419,6 +2410,7 @@ void Gamespy_Parse_TCP_Packet (int socket, struct sockaddr_in *from)
 	char *challengeKey = (char *)malloc(7);
 	char *challengeBuffer = (char *)malloc(84);
 	char *enctypeKey = NULL;
+	char *clientName = NULL;
 
 	memset(incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset(incomingTcpList, 0, sizeof(incomingTcpList));
@@ -2473,6 +2465,15 @@ retryIncomingTcpValidate:
 
 	if ((incomingTcpValidate != NULL) && (incomingTcpValidate[0] != 0))
 	{
+		/* FS: Unofficial nastyness in DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
+		clientName = Info_ValueForKey(incomingTcpValidate, "clientname");
+		if(!clientName)
+			clientName = "Unknown User";
+		else
+		{
+			clientName = strdup(Info_ValueForKey(incomingTcpValidate, "clientname"));
+		}
+
 		Con_DPrintf("[I] Incoming Validate: %s\n", incomingTcpValidate);
 	}
 	else
@@ -2509,7 +2510,7 @@ retryIncomingTcpValidate:
 	// FS: This is the later version of gamespy which sent it all as one packet.
 	if(strstr(incomingTcpValidate,"\\list\\"))
 	{
-		Gamespy_Parse_List_Request(incomingTcpValidate, socket, from);
+		Gamespy_Parse_List_Request(clientName, incomingTcpValidate, socket, from);
 		goto closeTcpSocket;
 	}
 
@@ -2554,7 +2555,7 @@ retryIncomingTcpList:
 			//parse this packet
 			if (strstr(incomingTcpList, "\\list\\") && strstr(incomingTcpList, "\\gamename\\")) // FS: We have to have \\list\\ and \\gamename\\ for this to even work
 			{
-				Gamespy_Parse_List_Request(incomingTcpList, socket, from);
+				Gamespy_Parse_List_Request(clientName, incomingTcpList, socket, from);
 			}
 			else
 			{
@@ -2579,6 +2580,8 @@ retryIncomingTcpList:
 	}
 closeTcpSocket:
 	//reset for next packet
+	if(clientName)
+		free(clientName);
 	free(challengeKey);
 	free(challengeBuffer);
 	memset (incomingTcpValidate, 0, sizeof(incomingTcpValidate));
