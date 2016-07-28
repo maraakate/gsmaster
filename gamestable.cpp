@@ -4,7 +4,7 @@ typedef struct
 {
 	const char *gamename;
 	const char *seckey;
-	int	motdPort;
+	unsigned short	motdPort;
 } game_table_t;
 
 game_table_t gameTable[] =
@@ -50,7 +50,7 @@ const char *Gamespy_Get_Game_SecKey (char *gamename)
 	return NULL;
 }
 
-int Gamespy_Get_MOTD_Port (char *gamename)
+unsigned short Gamespy_Get_MOTD_Port (char *gamename)
 {
 	int x = 0;
 

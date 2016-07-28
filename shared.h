@@ -23,6 +23,8 @@
 #define MAX_GAMENAME_LEN 16 // FS: Max gamename length used for game table and server structs
 #define DEFAULTHEARTBEAT 5*60 // FS: 5 minutes
 
+#define LOGTCP_DEFAULTNAME "gspytcp.log"
+
 #ifndef MAX_PATH
 #define MAX_PATH 256
 #endif

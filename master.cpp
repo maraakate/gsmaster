@@ -167,7 +167,7 @@ void SetQ2MasterRegKey(char* name, char *value);
 void GetQ2MasterRegKey(char* name, char *value);
 #define selectsocket select
 #define stricmp _stricmp
-
+#define strdup _strdup
 #else
 
 // Linux and Mac versions
@@ -277,6 +277,7 @@ char bind_port[KEY_LEN] = "27900";	// default port to bind
 char bind_port_tcp[KEY_LEN] = "28900";	// FS: default TCP port to bind
 char serverlist_filename[MAX_PATH] = ""; // FS: For a list of servers to add at startup
 char masterserverlist_filename[MAX_PATH] = ""; /* FS: For a list of master servers to add at startup */
+char logtcp_filename[MAX_PATH] = LOGTCP_DEFAULTNAME;
 int load_Serverlist = 0;
 int load_MasterServerlist = 0;
 
@@ -447,7 +448,7 @@ static char *NET_ErrorString(void)
 
 void Log_Sucessful_TCP_Connections(char *logbuffer)
 {
-	FILE *f = fopen("gspytcp.log", "a+");
+	FILE *f = fopen(logtcp_filename, "a+");
 
 	if(!f)
 		return;
@@ -1279,6 +1280,7 @@ void RunFrame (void)
 					server->heartbeats++;
 					server->validated = 1;
 				}
+				msleep(1);
 			}
 		}
 	}
@@ -1941,10 +1943,21 @@ void ParseCommandLine(int argc, char **argv)
 			motd = 1;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1, "logtcp", 6) == 0) /* FS: Write out successful gamespy TCP requests */
+		if(_strnicmp((char*)argv[i] + 1,"logtcp", 6) == 0) /* FS: Write out successful gamespy TCP requests */
 		{
+#ifdef __DJGPP__
+			DG_strlcpy(serverlist_filename, LOGTCP_DEFAULTNAME, sizeof(serverlist_filename));
+#else
+			DG_strlcpy(logtcp_filename, (char *)argv[i] + 8, sizeof(logtcp_filename));
+			if(!DG_strlen(logtcp_filename) || logtcp_filename[0] == '-')
+			{
+				DG_strlcpy(logtcp_filename, LOGTCP_DEFAULTNAME, sizeof(logtcp_filename));
+				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, DG_strlen(logtcp_filename));
+			}
+#endif
 			logTCP = 1;
 		}
+
 	}
 }
 
@@ -2775,8 +2788,8 @@ struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp)
 // FS
 void Check_Port_Boundaries (void)
 {
-	int udp;
-	int tcp;
+	int udp = 0;
+	int tcp = 0;
 
 	if(bind_port[0] != 0)
 	{
@@ -2919,7 +2932,6 @@ void HTTP_DL_List(void)
 void Master_DL_List (char *filename)
 {
 	char *fileBuffer = NULL;
-	char *gamenameFromHttp = NULL;
 	char *ip = NULL;
 	char *listToken = NULL;
 	char *listPtr = NULL;
