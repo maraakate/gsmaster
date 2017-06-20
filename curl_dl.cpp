@@ -159,11 +159,12 @@ void CURL_HTTP_Update (void)
 			{
 				CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt");
 			}
-
+#if 0 /* FS: Gone 08/01/2017 :( */
 			else if(!strcmp(name, "q2servers.txt"))
 			{
 				CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt");
 			}
+#endif
 		}
 	}
 }
