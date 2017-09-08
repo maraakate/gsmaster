@@ -1562,6 +1562,7 @@ int HeartBeat (struct sockaddr_in *from, char *data)
 	char *cmdToken = NULL; // FS
 	char *cmdPtr = NULL;
 	int statechanged = FALSE; // FS
+	struct in_addr addr; // FS: Maraakate.org hack
 
 	status = TRUE;
 
@@ -1601,6 +1602,17 @@ int HeartBeat (struct sockaddr_in *from, char *data)
 	}
 
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); // FS: actual gamename
+
+	if(!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15"))
+	{
+		struct hostent *remoteHost;
+		remoteHost = gethostbyname("maraakate.org");
+
+//		printf("\n\n\nGROSS HACK FOR NEW MARAAKATE.ORG");
+		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
+		from->sin_addr.s_addr = addr.s_addr;
+//		printf("IP Now: %s\n", inet_ntoa(from->sin_addr));
+	}
 
 	//walk through known servers
 	while (server->next)
