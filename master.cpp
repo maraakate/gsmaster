@@ -2540,7 +2540,7 @@ retryIncomingTcpValidate:
 		/* FS: Unofficial nastyness in DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
 		clientName = Info_ValueForKey(incomingTcpValidate, "clientname");
 		if(!clientName)
-			clientName = "Unknown User";
+			clientName = strdup("Unknown User");
 		else
 		{
 			clientName = strdup(Info_ValueForKey(incomingTcpValidate, "clientname"));
