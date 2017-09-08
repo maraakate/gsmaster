@@ -143,10 +143,10 @@
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <winsock.h>
 #include <winerror.h>
 #include <time.h>
 
@@ -288,7 +288,7 @@ int logTCP = 0;
 unsigned int minimumHeartbeats = 2; // FS: Minimum amount of heartbeats required before we're added to the list, used to verify it's a real server.
 double lastMasterListDL = 0; // FS
 
-// FS: For gamespy list
+/* FS: For gamespy list */
 const char listheader[] = "\\";
 const char finalstring[] = "final\\";
 const char finalstringerror[] = "\\final\\";
@@ -296,6 +296,10 @@ const char statusstring[] = "\\status\\secure\\";
 const char quakestatusstring[] = "status"; // FS: Q1 and QW use this
 const char quake1string[13] = "\x80\x00\x00\x0C\x02QUAKE\x00\x03"; /* FS: Raw data that's sent down for a "QUAKE" query string */
 const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wants an extra 0xff */
+
+/* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
+char quakeworld[] = "quakeworld";
+char quake2[] = "quake2";
 
 /* FS: Re-adapted from uhexen2 */
 #define	S2C_CHALLENGE		'c'
@@ -1638,15 +1642,13 @@ int HeartBeat (struct sockaddr_in *from, char *data)
 
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); // FS: actual gamename
 
-	if(!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15"))
+	if(!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15")) /* FS: FIXME: Gross hack because of some kind router nonsense from my VM */
 	{
 		struct hostent *remoteHost;
 		remoteHost = gethostbyname("maraakate.org");
 
-//		printf("\n\n\nGROSS HACK FOR NEW MARAAKATE.ORG");
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 		from->sin_addr.s_addr = addr.s_addr;
-//		printf("IP Now: %s\n", inet_ntoa(from->sin_addr));
 	}
 
 	//walk through known servers
@@ -1744,7 +1746,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Con_DPrintf("[I] Got a Quake 2 master server list!\n");
 
 			mslist += sizeof(q2_reply_hdr);
-			Parse_UDP_MS_List (mslist, "quake2", dglen-sizeof(q2_reply_hdr));
+			Parse_UDP_MS_List (mslist, quake2, dglen-sizeof(q2_reply_hdr));
 			return status;
 		}
 		else if (_strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) == 0) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
@@ -1752,7 +1754,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Con_DPrintf("[I] Got a QuakeWorld master server list!\n");
 
 			mslist += sizeof(qw_reply_hdr);
-			Parse_UDP_MS_List (mslist, "quakeworld", dglen-sizeof(qw_reply_hdr));
+			Parse_UDP_MS_List (mslist, quakeworld, dglen-sizeof(qw_reply_hdr));
 			return status;
 		}
 		else if(_strnicmp(data, OOB_SEQ"query", 9) == 0 || _strnicmp(data, OOB_SEQ"getservers", 14) == 0)
@@ -2793,11 +2795,6 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
-		if(ip)
-		{
-			free(ip);
-			ip = NULL;
-		}
 
 		// FS: Junk data, or doesn't exist.
 		if (!remoteHost)
