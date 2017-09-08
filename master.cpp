@@ -451,7 +451,9 @@ void Log_Sucessful_TCP_Connections(char *logbuffer)
 	FILE *f = fopen(logtcp_filename, "a+");
 
 	if(!f)
+	{
 		return;
+	}
 
 	fseek(f, 0, SEEK_END);
 
@@ -941,6 +943,11 @@ void ExitNicely (void)
 
 void DropServer (server_t *server)
 {
+	if(!server)
+	{
+		return;
+	}
+
 	//unlink
 	if (server->next)
 	{
@@ -957,7 +964,10 @@ void DropServer (server_t *server)
 		numservers--;
 	}
 
-	free (server);
+	if(server)
+	{
+		free (server);
+	}
 }
 
 //
@@ -1315,7 +1325,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		udpheader = (char *)malloc(udpheadersize);
 		assert(udpheader != NULL);
 
-		if(udpheader == NULL)
+		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
@@ -1329,7 +1339,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		udpheader = (char *)malloc(udpheadersize);
 		assert(udpheader != NULL);
 
-		if(udpheader == NULL)
+		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
@@ -1343,7 +1353,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 		udpheader = (char*)malloc(udpheadersize);
 		assert(udpheader != NULL);
 
-		if(udpheader == NULL)
+		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
@@ -1360,10 +1370,14 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 	bufsize = (udpheadersize) + 6 * (numservers + 1); // n bytes for the reply header, 6 bytes for game server ip and port
 	buflen = 0;
 	buff = (char *)malloc (bufsize);
-	assert(buff != NULL);	// catch it in debug
 
-	if (buff == NULL)
+	if (!buff)
 	{
+		if(udpheader)
+		{
+			free(udpheader);
+		}
+
 		Con_DPrintf("Fatal Error: memory allocation failed in SendServerListToClient\n");
 		return;
 	}
@@ -1402,8 +1416,15 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 				servercount, /* sent */
 				numservers); /* on record */
 
-	free(udpheader);
-	free(buff);
+	if(udpheader)
+	{
+		free(udpheader);
+	}
+
+	if(buff)
+	{
+		free(buff);
+	}
 }
 
 // FS: Gamespy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
@@ -1417,7 +1438,7 @@ void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *fr
 	server_t		*server = &servers;
 	unsigned long	servercount;
 	unsigned long	bufsize;
-	
+
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
 	if(!gamename || gamename[0] == 0)
@@ -1431,17 +1452,24 @@ void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *fr
 	bufsize = 1 + 26 * (numservers + 1) + 6; // 1 byte for /, 26 bytes for ip:port/, 6 for final/
 	buflen = 0;
 	buff = (char *)malloc (bufsize);
-	port = (char *)malloc (bufsize);
-	memset (port, 0 , bufsize);
-	assert(buff != NULL);	// catch it in debug
-
-	if (buff == NULL)
+	if (!buff)
 	{
-		printf("Fatal Error: memory allocation failed in SendGamespyListToClient\n");
+		printf("Fatal Error: memory allocation failed for buff in SendGamespyListToClient\n");
 		return;
 	}
-	
 	memset (buff, 0, bufsize);
+
+	port = (char *)malloc (bufsize);
+	if(!port)
+	{
+		if(buff)
+		{
+			free(buff);
+		}
+		printf("Fatal Error: memory allocation failed for port in SendGamespyListToClient\n");
+		return;
+	}
+	memset (port, 0 , bufsize);
 
 	if (basic)
 	{
@@ -1507,8 +1535,15 @@ void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *fr
 				servercount, /* sent */
 				numservers); /* on record */
 
-	free(buff);
-	free(port);
+	if(buff)
+	{
+		free(buff);
+	}
+
+	if(port)
+	{
+		free(port);
+	}
 }
 
 void Ack (struct sockaddr_in *from, char* dataPacket)
@@ -2235,6 +2270,11 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 
 	if(toEOF <= 0)
 	{
+		if(fileBuffer)
+		{
+			free(fileBuffer);
+		}
+
 		printf("[E] Cannot read file 'motd.txt' into memory!\n");
 		return;
 	}
@@ -2261,7 +2301,12 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 		Com_sprintf(motd, sizeof(motd), OOB_SEQ"print\n%s", fileBuffer);
 
 	sendto(motdSocket, motd, DG_strlen(motd), 0, (struct sockaddr *)&addr, sizeof(addr));
-	free(fileBuffer);
+
+	if(fileBuffer)
+	{
+		free(fileBuffer);
+	}
+
 	closesocket(motdSocket);
 	motdSocket = INVALID_SOCKET;
 }
@@ -2606,9 +2651,20 @@ retryIncomingTcpList:
 closeTcpSocket:
 	//reset for next packet
 	if(clientName)
+	{
 		free(clientName);
-	free(challengeKey);
-	free(challengeBuffer);
+	}
+
+	if(challengeKey)
+	{
+		free(challengeKey);
+	}
+
+	if(challengeBuffer)
+	{
+		free(challengeBuffer);
+	}
+
 	memset (incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset (incomingTcpList, 0, sizeof(incomingTcpList));
 	closesocket(socket);
@@ -2659,6 +2715,10 @@ void Add_Servers_From_List(char *filename)
 
 	if(toEOF <= 0)
 	{
+		if(fileBuffer)
+		{
+			free(fileBuffer);
+		}
 		printf("[E] Cannot read file '%s' into memory!\n", filename);
 		return;
 	}
@@ -2689,7 +2749,15 @@ void Add_Servers_From_List(char *filename)
 
 	Parse_ServerList(toEOF, fileBuffer, (char *)gamenameFromHttp); // FS: Break it up divided by newline terminator
 
-	free(fileBuffer);
+	if(gamenameFromHttp)
+	{
+		free(gamenameFromHttp);
+	}
+
+	if(fileBuffer)
+	{
+		free(fileBuffer);
+	}
 }
 
 // FS
@@ -2725,6 +2793,11 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
+		if(ip)
+		{
+			free(ip);
+			ip = NULL;
+		}
 
 		// FS: Junk data, or doesn't exist.
 		if (!remoteHost)
@@ -2772,7 +2845,12 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 		AddServer(&from, 0, htons(queryPort), listToken, ip);
 		break;
 	}
-	free(ip);
+
+	if(ip)
+	{
+		free(ip);
+		ip = NULL;
+	}
 }
 
 struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp)
@@ -2998,6 +3076,11 @@ void Master_DL_List (char *filename)
 	if(toEOF <= 0)
 	{
 		printf("[E] Cannot read file '%s' into memory!\n", filename);
+
+		if(fileBuffer)
+		{
+			free(fileBuffer);
+		}
 		return;
 	}
 
@@ -3009,6 +3092,10 @@ void Master_DL_List (char *filename)
 
 	if(!listToken)
 	{
+		if(fileBuffer)
+		{
+			free(fileBuffer);
+		}
 		return;
 	}
 
@@ -3025,6 +3112,12 @@ void Master_DL_List (char *filename)
 
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
+
+		if(ip)
+		{
+			free(ip);
+			ip = NULL;
+		}
 
 		// FS: Junk data, or doesn't exist.
 		if (!remoteHost)
@@ -3083,7 +3176,16 @@ void Master_DL_List (char *filename)
 
 		listToken = DK_strtok_r(NULL, separators, &listPtr); /* FS: Play it again, Sam. */
 	}
-	free(fileBuffer);
+
+	if(ip)
+	{
+		free(ip);
+	}
+
+	if(fileBuffer)
+	{
+		free(fileBuffer);
+	}
 }
 
 /* FS: Readapted from HWMQuery by sezero */
