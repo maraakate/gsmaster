@@ -801,9 +801,9 @@ int My_Main (int argc, char **argv)
 							newConnection++;
 							FD_SET(newConnection, &master); // add to master set
 							if (newConnection > maxConnections)
-							{    // keep track of the max
-	                            maxConnections = newConnection;
-	                        }
+							{	// keep track of the max
+								maxConnections = newConnection;
+							}
 							if (len > 4)
 							{
 								//parse this packet

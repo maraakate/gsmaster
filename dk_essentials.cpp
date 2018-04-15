@@ -55,9 +55,6 @@ void Con_DPrintf (const char *fmt, ...)
 		printf("%s", Con_Timestamp(msg));
 	else
 		printf("%s", msg);
-
-	fputs(msg, stdout);
-	fflush(stdout);
 }
 
 

@@ -1,3 +1,2 @@
-- External file list to ping other master servers to grab their lists.
 - Clean up
 - Fix DJGPP build
