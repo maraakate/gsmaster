@@ -1,6 +1,10 @@
 #ifndef MASTER_H
 #define MASTER_H
 
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif
+
 #include "shared.h"
 
 typedef struct server_s server_t;

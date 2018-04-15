@@ -163,11 +163,14 @@
 SERVICE_STATUS          MyServiceStatus; 
 SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 
+#define PORTREUSE SO_REUSEADDR
+
 void SetQ2MasterRegKey(char* name, char *value);
 void GetQ2MasterRegKey(char* name, char *value);
 #define selectsocket select
 #define stricmp _stricmp
 #define strdup _strdup
+
 #else
 
 // Linux and Mac versions
@@ -180,7 +183,9 @@ void GetQ2MasterRegKey(char* name, char *value);
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
+#ifndef __FreeBSD__
 #include <tcp.h>
+#endif
 
 #ifndef __DJGPP__
 	#include <sys/signal.h>
@@ -213,10 +218,23 @@ extern int	_watt_do_exit;	/* in sock_ini.h, but not in public headers. */
 	#define SOCKET_ERROR -1
 #endif
 
+#ifndef INVALID_SOCKET
+	#define INVALID_SOCKET -1
+#endif
+
 #define TIMEVAL struct timeval
+#define ioctlsocket ioctl
+
+#ifdef __FreeBSD__
+#define PORTREUSE SO_REUSEPORT
+#else
+#define PORTREUSE SO_REUSEADDR
+#endif
 
 // portability, rename or delete functions
 #define _strnicmp strncasecmp
+#define _stricmp strcasecmp
+#define stricmp strcasecmp
 #define My_Main main
 #define closesocket close // FS
 #define SetQ2MasterRegKey(x,y)
@@ -511,10 +529,9 @@ ErrorReturn:
 
 void NET_Init (void)
 {
-	int err;
 #ifdef WIN32
 	// overhead to tell Windows we're using TCP/IP.
-	err = WSAStartup ((WORD)MAKEWORD (1,1), &ws);
+	int err = WSAStartup ((WORD)MAKEWORD (1,1), &ws);
 	if (err)
 	{
 		printf("Error loading Windows Sockets! Error: %i\n",err);
@@ -557,8 +574,9 @@ return;
 int My_Main (int argc, char **argv)
 {
 	int len, err;
+	int optval = 1;
 //	unsigned int fromlen;
-	int fromlen;
+	socklen_t fromlen;
 #ifdef NEW_PARSE
 	unsigned int i, j; // FS
 #endif
@@ -602,7 +620,12 @@ int My_Main (int argc, char **argv)
 	listenaddress.sin_addr.s_addr = inet_addr(bind_ip); 
 	listenaddress.sin_family = AF_INET;
 	listenaddress.sin_port = htons((unsigned short)atoi(bind_port));
-	
+
+	if (setsockopt(listener, SOL_SOCKET, PORTREUSE, (char *)&optval, sizeof(optval)) == -1)
+	{
+		printf ("[W] Couldn't set port %s UDP SO_REUSEADDR\n", bind_port);
+	}
+
 	if ((bind (listener, (struct sockaddr *)&listenaddress, sizeof(listenaddress))) == SOCKET_ERROR)
 	{
 		printf ("[E] Couldn't bind to port %s UDP (something is probably using it)\n", bind_port);
@@ -612,6 +635,11 @@ int My_Main (int argc, char **argv)
 	listenaddressTCP.sin_addr.s_addr = inet_addr(bind_ip); 
 	listenaddressTCP.sin_family = AF_INET;
 	listenaddressTCP.sin_port = htons((unsigned short)atoi(bind_port_tcp));
+
+	if (setsockopt(listenerTCP, SOL_SOCKET, PORTREUSE, (char *)&optval, sizeof(optval)) == -1)
+	{
+		printf ("[W] Couldn't set port %s TCP SO_REUSEADDR\n", bind_port_tcp);
+	}
 
 	if ((bind (listenerTCP, (struct sockaddr *)&listenaddressTCP, sizeof(listenaddressTCP))) == SOCKET_ERROR)
 	{
@@ -1215,7 +1243,7 @@ void RunFrame (void)
 {
 	server_t		*server = &servers;
 	unsigned int	curtime = (unsigned int)time(NULL);
-	
+
 	while (server->next)
 	{
 		server = server->next;
@@ -1860,10 +1888,6 @@ void ParseCommandLine(int argc, char **argv)
 		{
 			SendAck = TRUE;
 		}
-		else
-		{
-			SendAck = FALSE;
-		}
 
 		if(_strnicmp((char*)argv[i] + 1,"quickvalidate", 13) == 0) // FS
 		{
@@ -2001,7 +2025,11 @@ void ParseCommandLine(int argc, char **argv)
 			if(!DG_strlen(logtcp_filename) || logtcp_filename[0] == '-')
 			{
 				DG_strlcpy(logtcp_filename, LOGTCP_DEFAULTNAME, sizeof(logtcp_filename));
-				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, DG_strlen(logtcp_filename));
+				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, (int)DG_strlen(logtcp_filename));
+			}
+			else
+			{
+				printf("Logging to %s\n", logtcp_filename);
 			}
 #endif
 			logTCP = 1;
@@ -2017,7 +2045,6 @@ void ParseCommandLine(int argc, char **argv)
 //
 
 #ifdef WIN32
-
 void ServiceCtrlHandler (DWORD Opcode) 
 {
     switch(Opcode) 
