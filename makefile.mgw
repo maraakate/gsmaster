@@ -1,0 +1,39 @@
+CXX = g++
+
+# whether to use CURL for HTTP List DL
+USE_CURL=yes
+
+CFLAGS = -g -Wall -Werror -O0 -m32 -fpermissive -Wno-write-strings
+LIBS   =
+
+WCFLAGS =
+WLFLAGS = -m32 -mwindows -lws2_32
+
+CURLLFLAGS =
+CURLCFLAGS =
+
+ifeq ($(USE_CURL),yes)
+CFLAGS+= -DUSE_CURL
+CURLCFLAGS+= -Ilibcurl/include
+CURLLFLAGS+= -Lwin32 -lcurl_x86
+endif
+
+SERVER = master.o \
+	gamestable.o \
+	dk_essentials.o \
+	gsmalg.o \
+	curl_dl.o
+
+
+OBJECTS =  $(SERVER)
+
+all: gsmaster.exe
+
+clean:
+	rm -f *.o
+
+gsmaster.exe: $(OBJECTS)
+	$(CXX) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster.exe
+
+%.o: %.cpp
+	$(CXX) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@

@@ -167,9 +167,6 @@ SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 #include "master.h"
 #include "dk_essentials.h" // FS
 
-#define NEW_PARSE // FS: New style parse - Synchronous I/O multiplexing from --> http://beej.us/guide/bgnet/output/html/multipage/advanced.html#select
-//#define OLDER_STYLE_PARSE
-
 // for debugging as a console application in Windows or in Linux
 int Debug;
 int Timestamp; // FS
@@ -186,10 +183,8 @@ struct sockaddr_in listenaddressTCP; // FS
 SOCKET out;
 SOCKET listener;
 SOCKET listenerTCP; // FS
-#ifdef NEW_PARSE
 SOCKET newConnection; // FS
 SOCKET maxConnections; // FS
-#endif
 TIMEVAL delay;
 
 #ifdef WIN32
@@ -197,16 +192,13 @@ WSADATA ws;
 #endif
 
 fd_set set;
-#ifdef NEW_PARSE
 fd_set master; // FS
-#endif /* WIN32 */
 
 char incoming[MAX_INCOMING_LEN];
 char incomingTcpValidate[MAX_INCOMING_LEN]; // FS
 char incomingTcpList[MAX_INCOMING_LEN]; // FS
 char rconPassword[KEY_LEN];
-int retval;
-int tcpRetval; // FS
+SOCKET tcpSocket; // FS
 int totalRetry = 10; // FS: Total retry attempts waiting for the gamespy validate stuff
 unsigned long heartbeatInterval = DEFAULTHEARTBEAT; // FS: Total minutes before sending the next status packet
 
@@ -287,6 +279,7 @@ static const unsigned char q2_reply_hdr[] =
 { 255, 255, 255, 255, 's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
 
 void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename);
+void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from);
 
 // FS: Daikatana needs \\secure\\ then a key to encode with.
 const char challengeHeader[] = "\\basic\\\\secure\\"; // FS: This is the start of the handshake
@@ -424,14 +417,14 @@ SOCKET UDP_OpenSocket (int port)
 	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET)
 	{
 		printf("[E] UDP_OpenSocket: socket: %s", NET_ErrorString());
-		return -1;
+		return INVALID_SOCKET;
 	}
 
 	// make it non-blocking
 	if (Set_Non_Blocking_Socket(newsocket) == SOCKET_ERROR)
 	{
 		printf("[E] UDP_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString());
-		return -1;
+		goto ErrorReturn;
 	}
 
 	address.sin_family = AF_INET;
@@ -444,7 +437,7 @@ SOCKET UDP_OpenSocket (int port)
 
 ErrorReturn:
 	closesocket (newsocket);
-	return -1;
+	return INVALID_SOCKET;
 }
 
 void NET_Init (void)
@@ -495,11 +488,8 @@ int My_Main (int argc, char **argv)
 {
 	int len, err;
 	int optval = 1;
-//	unsigned int fromlen;
 	socklen_t fromlen;
-#ifdef NEW_PARSE
-	unsigned int i, j; // FS
-#endif
+	SOCKET i, j; // FS
 	struct sockaddr_in from;
 
 	printf ("GSMaster v%s.  A GameSpy Encode Type 0 Emulator and a Quake 1, QuakeWorld, HexenWorld, and Quake 2 Master Server.\nBased on Q2-Master 1.1 by QwazyWabbit.  Originally GloomMaster.\n(c) 2002-2003 r1ch.net. (c) 2007 by QwazyWabbit.\n", VERSION);
@@ -609,11 +599,9 @@ int My_Main (int argc, char **argv)
 	}
 #endif // WIN32
 
-#ifdef NEW_PARSE
 	FD_ZERO(&master);
 	FD_SET(listener, &master);
 	maxConnections = listener + listenerTCP;
-#endif
 
 	CURL_HTTP_Init();
 	HTTP_DL_List();
@@ -645,64 +633,6 @@ int My_Main (int argc, char **argv)
 			}
 		}
 
-#ifdef OLDER_STYLE_PARSE
-		FD_ZERO(&set);
-		FD_SET (listener, &set);
-		retval = selectsocket(listener + 1, &set, NULL, NULL, &delay);
-		if (retval == 1)
-		{
-			len = recvfrom (listener, incoming, sizeof(incoming), 0, (struct sockaddr *)&from, &fromlen);
-			if (len != SOCKET_ERROR)
-			{
-				if (len > 4)
-				{
-					//parse this packet
-					if (!ParseResponse (&from, incoming, len))
-					{
-						// FS: Keep going, just don't add it
-//						err = 50;
-//						runmode = SRV_STOP;	// something went wrong, AddServer failed?
-					}
-				}
-				else
-				{
-					/* FS: TODO: Add UDP master server queries for QSpy and HWMaster here */
-					Con_DPrintf ("[W] runt packet from %s:%d\n", inet_ntoa (from.sin_addr), ntohs(from.sin_port));
-					Con_DPrintf ("[W] contents: %s\n", incoming);
-				}
-
-				//reset for next packet
-				memset (incoming, 0, sizeof(incoming));
-			} 
-			else 
-			{
-				Con_DPrintf ("[E] UDP socket error during select from %s:%d (%s)\n", 
-					inet_ntoa (from.sin_addr), 
-					ntohs(from.sin_port), 
-					NET_ErrorString());
-			}
-		}
-
-		FD_SET (listenerTCP, &set); // FS
-
-		// FS: Now do the Gamespy TCP handshake shit
-		if(selectsocket(listenerTCP + 1, &set, NULL, NULL, &delay) == 0)
-		{
-			tcpRetval = 0;
-		}
-		else
-		{
-			if (FD_ISSET(listenerTCP, &set))
-				tcpRetval = accept(listenerTCP, (struct sockaddr *)&from, &fromlen);
-		}
-
-		if (tcpRetval > 0 )
-		{
-			Gamespy_Parse_TCP_Packet(tcpRetval, &from);
-		}
-#endif
-
-#ifdef NEW_PARSE
 		FD_ZERO(&master);
 		FD_SET(listener, &master);
 		set = master;
@@ -712,8 +642,7 @@ int My_Main (int argc, char **argv)
 			{ // we got one!!
 				if (i == listener)
 				{
-					retval = selectsocket(maxConnections + 1, &set, NULL, NULL, &delay);
-					if (retval == 1)
+					if (selectsocket(maxConnections + 1, &set, NULL, NULL, &delay) == 1)
 					{
 						len = recvfrom (i, incoming, sizeof(incoming), 0, (struct sockaddr *)&from, &fromlen);
 						if (len != SOCKET_ERROR)
@@ -724,71 +653,7 @@ int My_Main (int argc, char **argv)
 							{	// keep track of the max
 								maxConnections = newConnection;
 							}
-							if (len > 4)
-							{
-								//parse this packet
-								ParseResponse (&from, incoming, len);
-							}
-							else
-							{
-								if(memcmp(incoming, hw_hwq_msg, 3) == 0)
-								{
-									Con_DPrintf("[I] HexenWorld hwmquery master server query.\n");
-									SendUDPServerListToClient(&from, (char *)"hexenworld");
-
-								}
-								if(memcmp(incoming, hw_gspy_msg, 3) == 0)
-								{
-									Con_DPrintf("[I] HexenWorld GameSpy master server query.\n");
-									SendUDPServerListToClient(&from, (char *)"hexenworld");
-
-								}
-								else if (memcmp(incoming, qw_msg, 2) == 0)
-								{
-									Con_DPrintf("[I] QuakeSpy master server query.\n");
-									SendUDPServerListToClient(&from, (char *)"quakeworld");
-								}
-								else if (memcmp(incoming, hw_server_msg, 3) == 0)
-								{
-									char serverName[64];
-
-									Con_DPrintf("[I] HexenWorld Server sending a ping.\n");
-									Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n",inet_ntoa(from.sin_addr), ntohs(from.sin_port));
-									AddServers_From_List_Execute(serverName, 0);
-								}
-								else if (memcmp(incoming, qw_server_msg, 2) == 0)
-								{
-									char serverName[64];
-
-									Con_DPrintf("[I] QuakeWorld Server sending a ping.\n");
-									Com_sprintf(serverName, sizeof(serverName), "%s:%d,quakeworld\n",inet_ntoa(from.sin_addr), ntohs(from.sin_port));
-									AddServers_From_List_Execute(serverName, 0);
-								}
-								else if (memcmp(incoming, hw_server_shutdown, 3) == 0)
-								{
-									char shutdownPacket[64];
-
-									Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\2", ntohs(from.sin_port));
-									HeartBeat(&from, shutdownPacket);
-								}
-								else if (memcmp(incoming, qw_server_shutdown, 2) == 0)
-								{
-									char shutdownPacket[64];
-
-									Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\2", ntohs(from.sin_port));
-									HeartBeat(&from, shutdownPacket);
-								}
-								else if(memcmp(incoming, qspy_req_msg, 2) == 0) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
-								{
-									Con_DPrintf("[I] QuakeSpy master server verify.\n");
-									sendto(i, (char *)qspy_req_msg, sizeof(qspy_req_msg), 0, (struct sockaddr *)&from, sizeof(from));
-								}
-								else
-								{
-									Con_DPrintf ("[W] runt packet from %s:%d\n", inet_ntoa(from.sin_addr), ntohs(from.sin_port));
-									Con_DPrintf ("[W] contents: %s\n", incoming);
-								}
-							}
+							Parse_UDP_Packet(i, len, &from);
 						}
 						else
 						{
@@ -797,16 +662,16 @@ int My_Main (int argc, char **argv)
 								ntohs(from.sin_port), 
 								NET_ErrorString());
 						}
-					} // retval
+					}
 					FD_CLR(newConnection, &master);
 				} //listener
 				//reset for next packet
 				memset (incoming, 0, sizeof(incoming));
 			} // FD_ISSET
 		} // for loop
+
 		FD_SET(listenerTCP, &master);
 		set = master;
-
 		for(j = 0; j <= maxConnections; j++)
 		{
 			if (FD_ISSET(j, &set))
@@ -814,32 +679,28 @@ int My_Main (int argc, char **argv)
 				if (j == listenerTCP)
 				{
 					// FS: Now do the Gamespy TCP handshake shit
-					if(selectsocket(maxConnections + 1, &set, NULL, NULL, &delay) == 0)
-					{
-						tcpRetval = 0;
-					}
-					else
+					if(selectsocket(maxConnections + 1, &set, NULL, NULL, &delay))
 					{
 						if (FD_ISSET(listenerTCP, &set))
 						{
-							tcpRetval = accept(listenerTCP, (struct sockaddr *)&from, &fromlen);
+							tcpSocket = accept(listenerTCP, (struct sockaddr *)&from, &fromlen);
+							if (tcpSocket != INVALID_SOCKET )
+							{
+								newConnection++;
+								FD_SET(newConnection, &master); // add to master set
+								if (newConnection > maxConnections)
+								{    // keep track of the max
+									maxConnections = newConnection;
+								}
+								Gamespy_Parse_TCP_Packet(tcpSocket, &from);
+							}
+							FD_CLR(newConnection, &master);
 						}
 					}
-					if (tcpRetval > 0 )
-					{
-						newConnection++;
-						FD_SET(newConnection, &master); // add to master set
-						if (newConnection > maxConnections)
-						{    // keep track of the max
-							maxConnections = newConnection;
-						}
-						Gamespy_Parse_TCP_Packet(tcpRetval, &from);
-					}
-					FD_CLR(newConnection, &master);
 				}
 			}
 		}
-#endif
+
 		// destroy old servers, etc
 		RunFrame();
 
@@ -2176,7 +2037,7 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 		return;
 	}
 
-	if(motdSocket == -1)
+	if(motdSocket == INVALID_SOCKET)
 	{
 		return;
 	}
@@ -2261,7 +2122,7 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 }
 
 // FS
-void Gamespy_Parse_List_Request(char *clientName, char *querystring, int socket, struct sockaddr_in *from)
+void Gamespy_Parse_List_Request(char *clientName, char *querystring, SOCKET socket, struct sockaddr_in *from)
 {
 	char *gamename = NULL;
 	char *tokenPtr = NULL;
@@ -2309,7 +2170,7 @@ void Gamespy_Parse_List_Request(char *clientName, char *querystring, int socket,
 	{
 error:
 		Con_DPrintf("[I] Invalid TCP list request from %s:%d.  Sending %s string.\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port), finalstringerror);
-		send(tcpRetval, finalstringerror, DG_strlen(finalstringerror), 0);
+		send(tcpSocket, finalstringerror, DG_strlen(finalstringerror), 0);
 		return;
 	}
 
@@ -2418,7 +2279,7 @@ int Gamespy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, i
 }
 
 // FS
-void Gamespy_Parse_TCP_Packet (int socket, struct sockaddr_in *from)
+void Gamespy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 {
 	int len = 0;
 	int lastWSAError = 0;
@@ -2617,7 +2478,7 @@ closeTcpSocket:
 	memset (incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset (incomingTcpList, 0, sizeof(incomingTcpList));
 	closesocket(socket);
-	tcpRetval = 0;
+	tcpSocket = INVALID_SOCKET;
 }
 
 void Add_Servers_From_List(char *filename)
@@ -3190,5 +3051,72 @@ void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 
 		tmp += 6;
 		size -= 6;
+	}
+}
+
+void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from)
+{
+	if (len > 4)
+	{
+		//parse this packet
+		ParseResponse (from, incoming, len);
+	}
+	else
+	{
+		if(memcmp(incoming, hw_hwq_msg, 3) == 0)
+		{
+			Con_DPrintf("[I] HexenWorld hwmquery master server query.\n");
+			SendUDPServerListToClient(from, (char *)"hexenworld");
+		}
+		if(memcmp(incoming, hw_gspy_msg, 3) == 0)
+		{
+			Con_DPrintf("[I] HexenWorld GameSpy master server query.\n");
+			SendUDPServerListToClient(from, (char *)"hexenworld");
+		}
+		else if (memcmp(incoming, qw_msg, 2) == 0)
+		{
+			Con_DPrintf("[I] QuakeSpy master server query.\n");
+			SendUDPServerListToClient(from, (char *)"quakeworld");
+		}
+		else if (memcmp(incoming, hw_server_msg, 3) == 0)
+		{
+			char serverName[64];
+
+			Con_DPrintf("[I] HexenWorld Server sending a ping.\n");
+			Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n",inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+			AddServers_From_List_Execute(serverName, 0);
+		}
+		else if (memcmp(incoming, qw_server_msg, 2) == 0)
+		{
+			char serverName[64];
+
+			Con_DPrintf("[I] QuakeWorld Server sending a ping.\n");
+			Com_sprintf(serverName, sizeof(serverName), "%s:%d,quakeworld\n",inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+			AddServers_From_List_Execute(serverName, 0);
+		}
+		else if (memcmp(incoming, hw_server_shutdown, 3) == 0)
+		{
+			char shutdownPacket[64];
+
+			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\2", ntohs(from->sin_port));
+			HeartBeat(from, shutdownPacket);
+		}
+		else if (memcmp(incoming, qw_server_shutdown, 2) == 0)
+		{
+			char shutdownPacket[64];
+
+			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\2", ntohs(from->sin_port));
+			HeartBeat(from, shutdownPacket);
+		}
+		else if(memcmp(incoming, qspy_req_msg, 2) == 0) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
+		{
+			Con_DPrintf("[I] QuakeSpy master server verify.\n");
+			sendto(connection, (char *)qspy_req_msg, sizeof(qspy_req_msg), 0, (struct sockaddr *)from, sizeof(*from));
+		}
+		else
+		{
+			Con_DPrintf ("[W] runt packet from %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+			Con_DPrintf ("[W] contents: %s\n", incoming);
+		}
 	}
 }
