@@ -45,9 +45,7 @@
 // 
 //  AUTHOR: Craig Link - Microsoft Developer Support 
 // 
- 
-
-#ifdef _WIN32 // FS: Not needed in non-windows
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h> 
 #include <stdio.h> 
@@ -56,9 +54,7 @@
 #include <tchar.h> 
 
 #include "service.h" 
- 
- 
- 
+
 // internal variables 
 SERVICE_STATUS          ssStatus;       // current status of the service 
 SERVICE_STATUS_HANDLE   sshStatusHandle; 
@@ -93,6 +89,7 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 //    main service thread.  When the this call returns, 
 //    the service has stopped, so exit. 
 // 
+
 #ifndef _CRTAPI1 /* FS: VS2005 Compatibility */
 #define _CRTAPI1 _cdecl
 #endif
@@ -108,32 +105,32 @@ int _CRTAPI1 main(int argc, char **argv)
 	if ( (argc > 1) &&
          ((*argv[1] == '-') || (*argv[1] == '/')) )
     { 
-        if (!_stricmp( "install", argv[1]+1))
+        if (!stricmp( "install", argv[1]+1))
         { 
             CmdInstallService(); 
         } 
-        else if (!_stricmp( "remove", argv[1]+1))
+        else if (!stricmp( "remove", argv[1]+1))
         { 
             CmdRemoveService(); 
         } 
-        else if (!_stricmp( "debug", argv[1]+1))
+        else if (!stricmp( "debug", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
         }
-        else if (!_stricmp( "ip", argv[1]+1))
+        else if (!stricmp( "ip", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
 			printf("IP address was correctly initialized.\n");
         }
-        else if (!_stricmp( "port", argv[1]+1))
+        else if (!stricmp( "port", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
 			printf("Port address was correctly initialized.\n");
         }
-		else if (!_stricmp("?", argv[1]+1) || !_stricmp("help", argv[1]+1))
+		else if (!stricmp("?", argv[1]+1) || !stricmp("help", argv[1]+1))
 		{
 			bDebug = TRUE;
 			CmdDebugService(argc, argv);
@@ -324,9 +321,7 @@ BOOL ReportStatusToSCMgr(DWORD dwCurrentState,
     } 
     return fResult; 
 } 
- 
- 
- 
+
 // 
 //  FUNCTION: AddToMessageLog(LPTSTR lpszMsg) 
 // 
@@ -374,16 +369,11 @@ VOID AddToMessageLog(LPTSTR lpszMsg)
         } 
     } 
 } 
- 
- 
- 
- 
+
 /////////////////////////////////////////////////////////////////// 
 // 
 //  The following code handles service installation and removal 
 // 
- 
- 
 // 
 //  FUNCTION: CmdInstallService() 
 // 
@@ -447,9 +437,7 @@ void CmdInstallService()
     else 
         _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256)); 
 } 
- 
- 
- 
+
 // 
 //  FUNCTION: CmdRemoveService() 
 // 
@@ -520,16 +508,11 @@ void CmdRemoveService()
     else 
         _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256)); 
 } 
- 
- 
- 
- 
+
 /////////////////////////////////////////////////////////////////// 
 // 
 //  The following code is for running the service as a console app 
 // 
- 
- 
 // 
 //  FUNCTION: CmdDebugService(int argc, char ** argv) 
 // 
@@ -562,8 +545,7 @@ void CmdDebugService(int argc, char ** argv)
  
     ServiceStart( dwArgc, lpszArgv ); 
 } 
- 
- 
+
 // 
 //  FUNCTION: ControlHandler ( DWORD dwCtrlType ) 
 // 

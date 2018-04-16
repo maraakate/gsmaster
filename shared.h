@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "dg_misc.h" // FS: Caedes special safe string stuff
-#include "curl_dl.h" // FS: Libcurl
+#include "curl_dl.h"
 
 #define SRV_RUN		1
 #define SRV_STOP	0

@@ -43,8 +43,8 @@
 #ifndef __DG_MISC_H__
 #define __DG_MISC_H__
 
-#include <stdarg.h> // FS
-#if defined(_MSC_VER) && _MSC_VER < 1400 // FS
+#include <stdarg.h>
+#if defined(_MSC_VER) && _MSC_VER < 1400
 	typedef unsigned int uintptr_t;
 #endif
 
@@ -694,7 +694,7 @@ DG_MISC_DEF int DG_vsnprintf(char *dst, size_t size, const char *format, va_list
 		// it's also -1 if dst or size were NULL/0, so the user didn't want to write
 		// we want to return the number of characters that would've been
 		// needed, though.. fortunately _vscprintf() calculates that.
-#if !defined (_MSC_VER) // FS
+#if !defined (_MSC_VER)
 		ret = _vscprintf(format, ap);
 #endif
 		// NOTE: on ancient MSVC versions you may get an error because

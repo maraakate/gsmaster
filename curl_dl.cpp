@@ -13,7 +13,6 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
-
 #ifdef USE_CURL
 #define CURL_STATICLIB
 #define CURL_DISABLE_LDAP
@@ -38,8 +37,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "master.h"
 #include "dk_essentials.h"
 
-
-static int curl_borked;
+static int curl_init_error;
 static CURL *easy_handle;
 static CURLM *multi_handle;
 
@@ -61,7 +59,7 @@ static size_t http_write (void *ptr, size_t size, size_t nmemb, void *stream)
 
 void CURL_HTTP_Init (void)
 {
-	if ((curl_borked = curl_global_init (CURL_GLOBAL_NOTHING)))
+	if ((curl_init_error = curl_global_init (CURL_GLOBAL_NOTHING)))
 	{
 		return;
 	}
@@ -70,7 +68,7 @@ void CURL_HTTP_Init (void)
 
 void CURL_HTTP_Shutdown (void)
 {
-	if (curl_borked)
+	if (curl_init_error)
 	{
 		return;
 	}
@@ -171,12 +169,10 @@ void CURL_HTTP_Update (void)
 			{
 				CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt");
 			}
-#if 0 /* FS: Gone 08/01/2017 :( */
 			else if(!strcmp(name, "q2servers.txt"))
 			{
 				CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt");
 			}
-#endif
 		}
 	}
 }
@@ -187,14 +183,10 @@ void CURL_HTTP_Reset (void)
 	curl_easy_cleanup (easy_handle);
 	easy_handle = 0;
 }
-
-
 #else
-
 void CURL_HTTP_Init (void) {}
 void CURL_HTTP_Shutdown (void) {}
 void CURL_HTTP_StartDownload (const char *url, const char *filename) {}
 void CURL_HTTP_Update (void) {}
 void CURL_HTTP_Reset (void) {}
-
-#endif
+#endif // USE_CURL
