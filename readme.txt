@@ -89,8 +89,6 @@ port scheme.
 ==========================
 * DJGPP port is currently broken.  Compiles and executes fine, but only
   pings the last server in a large batch.
-* FreeBSD printf and logging stops working after entering the main while loop.
-  Not an issue if being run as a daemon.
 
 ==========================
 5. Credits

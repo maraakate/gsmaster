@@ -47,13 +47,14 @@
 // 
  
 
-#ifdef WIN32 // FS: Not needed in non-windows
+#ifdef _WIN32 // FS: Not needed in non-windows
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h> 
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <process.h> 
 #include <tchar.h> 
- 
+
 #include "service.h" 
  
  
@@ -96,7 +97,7 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 #define _CRTAPI1 _cdecl
 #endif
 
-void _CRTAPI1 main(int argc, char **argv) 
+int _CRTAPI1 main(int argc, char **argv)
 { 
     SERVICE_TABLE_ENTRY dispatchTable[] = 
     { 
@@ -104,7 +105,7 @@ void _CRTAPI1 main(int argc, char **argv)
         { NULL, NULL } 
     }; 
  
-    if ( (argc > 1) && 
+	if ( (argc > 1) &&
          ((*argv[1] == '-') || (*argv[1] == '/')) ) 
     { 
         if ( _stricmp( "install", argv[1]+1 ) == 0 ) 
@@ -154,6 +155,8 @@ void _CRTAPI1 main(int argc, char **argv)
  
         if (!StartServiceCtrlDispatcher(dispatchTable)) 
             AddToMessageLog(TEXT("StartServiceCtrlDispatcher failed.")); 
+
+	return 0;
 } 
  
  

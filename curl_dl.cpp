@@ -25,10 +25,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdlib.h>
 
 #ifdef _WIN32
-#include <io.h>
-#endif // WIN32
-
-#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+	#include <io.h>
 	#include "curl/curl.h"
 #else
 	#include "libcurl/include/curl/curl.h"

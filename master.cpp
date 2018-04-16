@@ -19,7 +19,7 @@
 *
 */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #include <windows.h>
@@ -63,7 +63,7 @@ SOCKET newConnection; // FS
 SOCKET maxConnections; // FS
 TIMEVAL delay;
 
-#ifdef WIN32
+#ifdef _WIN32
 WSADATA ws;
 #endif
 
@@ -318,7 +318,7 @@ ErrorReturn:
 
 void NET_Init (void)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	// overhead to tell Windows we're using TCP/IP.
 	int err = WSAStartup ((WORD)MAKEWORD (1,1), &ws);
 	if (err)
@@ -1702,7 +1702,7 @@ void ParseCommandLine(int argc, char **argv)
 // installed as a Windows service.
 //
 
-#ifdef WIN32
+#ifdef _WIN32
 void ServiceCtrlHandler (DWORD Opcode) 
 {
     switch(Opcode) 
