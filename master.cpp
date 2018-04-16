@@ -368,7 +368,7 @@ int My_Main (int argc, char **argv)
 	SOCKET i, j; // FS
 	struct sockaddr_in from;
 
-	printf ("GSMaster v%s.  A GameSpy Encode Type 0 Emulator and a Quake 1, QuakeWorld, HexenWorld, and Quake 2 Master Server.\nBased on Q2-Master 1.1 by QwazyWabbit.  Originally GloomMaster.\n(c) 2002-2003 r1ch.net. (c) 2007 by QwazyWabbit.\n", VERSION);
+	printf ("GSMaster v%s.  A GameSpy Encode Type 0 Emulator Master Server.\nBased on Q2-Master 1.1 by QwazyWabbit.  Originally GloomMaster.\n(c) 2002-2003 r1ch.net. (c) 2007 by QwazyWabbit.\n", VERSION);
 	printf ("Built: %s at %s.\n\n", __DATE__, __TIME__);
 	numservers = 0;
 
@@ -1541,17 +1541,76 @@ void ParseCommandLine(int argc, char **argv)
 			}
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"sendack", 7) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1, "?", 1) || !_strnicmp((char *)argv[i] + 1, "help", 4))
+		{
+			printf("\nOptions:\n");
+
+			printf("* -debug - Asserts debug mode. The program prints status messages to console\n" \
+					"           while running. Shows pings, heartbeats, number of servers listed.\n\n");
+
+			printf("* -ip <ip address> - causes server to bind to a particular IP address when\n" \
+					"                     used with multi-homed hosts. Default is 0.0.0.0 (any).\n\n");
+
+			printf("* -port <port> - UDP port used for status query. Default is %s.\n\n", bind_port);
+
+			printf("* -sendack: by default gamespy doesn't not send this type of packet out.\n" \
+					"            if you want to extend the courtesy of acknowleding the\n" \
+					"            heartbeat then enable this setting.\n\n");
+
+			printf("* -quickvalidate - by default the master server requires 1 extra heartbeat\n" \
+					"                   and a successful ping request to be added to the query\n" \
+					"                   list.  Set this to allow any new server to show up\n" \
+					"                   immediately.\n\n");
+
+			printf("* -validationrequired <1, 2, or 3> - Require validation from the challenge key\n" \
+					"                                     cross-checked with the games secure key.\n" \
+					"                                     1 - client list requests only.\n" \
+					"                                     2 - servers.\n" \
+					"                                     3 - clients and servers (recommended).\n\n");
+
+			printf("* -timestamp <1 or 2> - Debug outputs are timestampped.  1 - for AM/PM.\n" \
+					"                        2 for military.\n\n");
+
+			printf("* -tcpport <port> - causes server to bind to a particular TCP port for the\n" \
+					"                    gamespy list query from clients. Default is %s.\n\n", bind_port_tcp);
+
+			printf("* -serverlist <filename> - Adds servers from a list.  Hostnames are supported.\n" \
+					"                           Format is <ip>,<query port>,<gamename>\n" \
+					"                           i.e. maraakate.org,27982,daikatana.\n\n");
+
+			printf("* -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other\n" \
+					"                places.\n\n");
+
+			printf("* -heartbeatinterval <minutes> - Time (in minutes) when a heartbeat is sent out\n" \
+					"                                 to a server on the list\n\n");
+
+			printf("* -masterlist <filename> - Adds master servers from a list.  Every hour\n" \
+					"                           GSMaster will ping these servers to grab their lists.\n" \
+					"                           Hostnames are supported.\n" \
+					"                           Format is <ip>,<query port>,<gamename>\n" \
+					"                           i.e. maraakate.org,27900,quakeworld.\n\n");
+
+			printf("* -logtcp <filename> - Log successful GameSpy TCP list requests.\n" \
+					"                       If no filename is specified it will use the default\n" \
+					"                       of %s\n\n", logtcp_filename);
+
+			printf("* -motd <filename> - Send a MOTD Out-of-Band packet.\n"
+					"                     See gamestable.cpp for supported games\n\n");
+
+			exit(0);
+		}
+
+		if(!_strnicmp((char*)argv[i] + 1,"sendack", 7)) // FS
 		{
 			SendAck = TRUE;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"quickvalidate", 13) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"quickvalidate", 13)) // FS
 		{
 			validate_newserver_immediately = TRUE;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"validationrequired", 18) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"validationrequired", 18)) // FS
 		{
 #ifdef __DJGPP__
 			validation_required = atoi((char*)argv[i+1]);
@@ -1560,7 +1619,7 @@ void ParseCommandLine(int argc, char **argv)
 #endif
 		}
 		
-		if(_strnicmp((char*)argv[i] + 1,"timestamp", 9) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"timestamp", 9)) // FS
 		{
 #ifdef __DJGPP__
 			Timestamp = atoi((char*)argv[i+1]);
@@ -1569,12 +1628,12 @@ void ParseCommandLine(int argc, char **argv)
 #endif
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"httpenable", 10) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"httpenable", 10)) // FS
 		{
 			httpEnable = TRUE;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"rconpassword", 12) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"rconpassword", 12)) // FS
 		{
 #ifdef __DJGPP__
 			DG_strlcpy(rconPassword, (char*)argv[i]+14, sizeof(rconPassword));
@@ -1584,7 +1643,7 @@ void ParseCommandLine(int argc, char **argv)
 			printf("[I] rcon password set to %s\n", rconPassword);
 		}
 
-		if(_strnicmp((char*)argv[i] + 1, "heartbeatinterval", 17) == 0)
+		if(!_strnicmp((char*)argv[i] + 1, "heartbeatinterval", 17))
 		{
 #ifdef __DJGPP__
 			heartbeatInterval = atol((char*)argv[i+1]);
@@ -1600,7 +1659,7 @@ void ParseCommandLine(int argc, char **argv)
 				heartbeatInterval = heartbeatInterval * 60;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1, "minimumheartbeats", 17) == 0)
+		if(!_strnicmp((char*)argv[i] + 1, "minimumheartbeats", 17))
 		{
 #ifdef __DJGPP__
 			minimumHeartbeats = atoi((char*)argv[i+1]);
@@ -1615,7 +1674,7 @@ void ParseCommandLine(int argc, char **argv)
 			}
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"ip", 2) == 0)
+		if(!_strnicmp((char*)argv[i] + 1,"ip", 2))
 		{
 			//bind_ip, a specific host ip if desired
 #ifdef __DJGPP__
@@ -1626,7 +1685,7 @@ void ParseCommandLine(int argc, char **argv)
 			SetQ2MasterRegKey(REGKEY_BIND_IP, bind_ip);
 		}
 		
-		if(_strnicmp((char*)argv[i] + 1,"port", 4) == 0)
+		if(!_strnicmp((char*)argv[i] + 1,"port", 4) == 0)
 		{
 			//bind_port, if other than default port
 #ifdef __DJGPP__
@@ -1637,7 +1696,7 @@ void ParseCommandLine(int argc, char **argv)
 			SetQ2MasterRegKey(REGKEY_BIND_PORT, bind_port);
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"tcpport", 7) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"tcpport", 7)) // FS
 		{
 			//bind_port_tcp, if other than default TCP port
 #ifdef __DJGPP__
@@ -1648,7 +1707,7 @@ void ParseCommandLine(int argc, char **argv)
 			SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"serverlist", 10) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"serverlist", 10)) // FS
 		{
 #ifdef __DJGPP__
 			DG_strlcpy(serverlist_filename, (char *)argv[i+1], sizeof(serverlist_filename));
@@ -1658,7 +1717,7 @@ void ParseCommandLine(int argc, char **argv)
 			load_Serverlist = 1;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"masterlist", 10) == 0) // FS
+		if(!_strnicmp((char*)argv[i] + 1,"masterlist", 10)) // FS
 		{
 #ifdef __DJGPP__
 			DG_strlcpy(masterserverlist_filename, (char *)argv[i+1], sizeof(masterserverlist_filename));
@@ -1668,12 +1727,12 @@ void ParseCommandLine(int argc, char **argv)
 			load_MasterServerlist = 1;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"motd", 4) == 0) /* FS: Added motd.txt support */
+		if(!_strnicmp((char*)argv[i] + 1,"motd", 4)) /* FS: Added motd.txt support */
 		{
 			bMotd = 1;
 		}
 
-		if(_strnicmp((char*)argv[i] + 1,"logtcp", 6) == 0) /* FS: Write out successful gamespy TCP requests */
+		if(!_strnicmp((char*)argv[i] + 1,"logtcp", 6)) /* FS: Write out successful gamespy TCP requests */
 		{
 #ifdef __DJGPP__
 			DG_strlcpy(serverlist_filename, LOGTCP_DEFAULTNAME, sizeof(serverlist_filename));

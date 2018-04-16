@@ -106,33 +106,38 @@ int _CRTAPI1 main(int argc, char **argv)
     }; 
  
 	if ( (argc > 1) &&
-         ((*argv[1] == '-') || (*argv[1] == '/')) ) 
+         ((*argv[1] == '-') || (*argv[1] == '/')) )
     { 
-        if ( _stricmp( "install", argv[1]+1 ) == 0 ) 
+        if (!_stricmp( "install", argv[1]+1))
         { 
             CmdInstallService(); 
         } 
-        else if ( _stricmp( "remove", argv[1]+1 ) == 0 ) 
+        else if (!_stricmp( "remove", argv[1]+1))
         { 
             CmdRemoveService(); 
         } 
-        else if ( _stricmp( "debug", argv[1]+1 ) == 0 ) 
+        else if (!_stricmp( "debug", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
         }
-        else if ( _stricmp( "ip", argv[1]+1 ) == 0 ) 
+        else if (!_stricmp( "ip", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
 			printf("IP address was correctly initialized.\n");
         }
-        else if ( _stricmp( "port", argv[1]+1 ) == 0 ) 
+        else if (!_stricmp( "port", argv[1]+1))
         { 
             bDebug = TRUE; 
             CmdDebugService(argc, argv); 
 			printf("Port address was correctly initialized.\n");
         }
+		else if (!_stricmp("?", argv[1]+1) || !_stricmp("help", argv[1]+1))
+		{
+			bDebug = TRUE;
+			CmdDebugService(argc, argv);
+		}
         else 
         { 
             goto dispatch; 
@@ -148,15 +153,13 @@ int _CRTAPI1 main(int argc, char **argv)
         printf( "%s -install          to install the service\n", SZAPPNAME ); 
         printf( "%s -remove           to remove the service\n", SZAPPNAME ); 
         printf( "%s -debug <params>   to run as a console app for debugging\n", SZAPPNAME ); 
-        printf( "%s -ip x.x.x.x       to bind to a unique ip address\n", SZAPPNAME ); 
-        printf( "%s -port nnnnn       to bind to port address other than 27990\n", SZAPPNAME ); 
         printf( "\nStartServiceCtrlDispatcher being called.\n" ); 
         printf( "This may take several seconds.  Please wait.\n" ); 
  
         if (!StartServiceCtrlDispatcher(dispatchTable)) 
             AddToMessageLog(TEXT("StartServiceCtrlDispatcher failed.")); 
 
-	return 0;
+		return 0;
 } 
  
  
