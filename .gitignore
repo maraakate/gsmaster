@@ -10,29 +10,11 @@
 *.user
 *.aps
 *.clwbin/
-# ignore all the windows binaries - they shouldn't be committed! 
+
 Debug/
-debug_gl/
 Release/
-release_gl/
 out.txt
-gas2masm.exe
-gas2masm.ilk
-qw.exe
-qwdosfx.exe
-qdos.exe
-qdosfx.exe
 gspydos.exe
-relwqwexe.bat
-relqwexe.bat
-relwqdexe.bat
-relqdexe.bat
-release.bat
-# glide3x and mesa leftovers that are generated during compile
-fxgasm.h
-fxbldno.h
-fxgasm.exe
-fsbldno.exe
-fxinline.h
-gendate.h
-#matypes.h
+gsmaster.exe
+q2servers.txt
+qwservers.txt

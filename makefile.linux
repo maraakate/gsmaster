@@ -10,7 +10,7 @@ CFLAGS = -g -Wall -Werror -O0 -fpermissive -Wno-write-strings
 LIBS   =
 
 WCFLAGS = 
-WLFLAGS =
+WLFLAGS = -ldl
 
 CURLLFLAGS =
 CURLCFLAGS =
@@ -18,7 +18,7 @@ CURLCFLAGS =
 ifeq ($(USE_CURL),yes)
 CFLAGS+= -DUSE_CURL
 CURLCFLAGS+= -Ilibcurl/include
-CURLLFLAGS+= -Lfreebsd/$(MACHTYPE) -lcurl
+CURLLFLAGS+= -Llinux/$(MACHTYPE) -lcurl
 endif
 
 SERVER = master.o \

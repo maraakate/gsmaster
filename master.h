@@ -17,19 +17,17 @@ typedef int socklen_t;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
-#ifndef __FreeBSD__
-#include <tcp.h>
-#endif
 
 #ifndef __DJGPP__
 	#include <sys/signal.h>
 #else
+	#include <tcp.h>
 	#include <signal.h>
 #endif /* __DJGPP__ */
 
@@ -43,7 +41,7 @@ enum {FALSE, TRUE};
 
 // stuff not defined in sys/socket.h
 #ifndef SOCKET
-#define SOCKET unsigned int
+#define SOCKET int
 #endif /* SOCKET */
 
 #ifdef __DJGPP__
