@@ -1681,8 +1681,9 @@ void ParseCommandLine(int argc, char **argv)
 			DG_strlcpy(logtcp_filename, (char *)argv[i] + 8, sizeof(logtcp_filename));
 			if(!DG_strlen(logtcp_filename) || logtcp_filename[0] == '-')
 			{
+				int logStrlen = DG_strlen(logtcp_filename);
 				DG_strlcpy(logtcp_filename, LOGTCP_DEFAULTNAME, sizeof(logtcp_filename));
-				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, DG_strlen(logtcp_filename));
+				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, logStrlen);
 			}
 			else
 			{
