@@ -1,24 +1,31 @@
 CXX = g++
 
+# default to Linux
+OSTYPE=linux
+
 # default to x86 architecture
 MACHTYPE=x86
 
 # whether to use CURL for HTTP List DL
 USE_CURL=yes
 
-CFLAGS = -g -Wall -Werror -O0 -fpermissive -Wno-write-strings
-LIBS   =
+ifeq ($(DEBUG),1)
+CFLAGS = -g -O0
+else
+CFLAGS = -O2 -fomit-frame-pointer
+endif
 
-WCFLAGS = 
-WLFLAGS =
+CFLAGS +=-Wall -Werror
 
-CURLLFLAGS =
-CURLCFLAGS =
+WCFLAGS =
+ifeq ($(OSTYPE), linux)
+WLFLAGS = -ldl
+endif
 
 ifeq ($(USE_CURL),yes)
-CFLAGS+= -DUSE_CURL
-CURLCFLAGS+= -Ilibcurl/include
-CURLLFLAGS+= -Lfreebsd/$(MACHTYPE) -lcurl
+CFLAGS+=-DUSE_CURL
+CURLCFLAGS = -Ilibcurl/include
+CURLLFLAGS = -L$(OSTYPE)/$(MACHTYPE) -lcurl
 endif
 
 SERVER = master.o \
@@ -28,7 +35,7 @@ SERVER = master.o \
 	curl_dl.o
 
 
-OBJECTS =  $(SERVER)
+OBJECTS = $(SERVER)
 
 all: gsmaster
 

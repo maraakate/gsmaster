@@ -1204,7 +1204,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && server->gamename && gamename && !strcmp(server->gamename, gamename))
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename))
 		{
 			memcpy (buff + buflen, &server->ip.sin_addr, 4);
 			buflen += 4;
@@ -1295,7 +1295,7 @@ void SendGamespyListToClient (SOCKET socket, char *gamename, struct sockaddr_in 
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && server->gamename && gamename && !strcmp(server->gamename, gamename))
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename))
 		{
 			ip = inet_ntoa(server->ip.sin_addr);
 
@@ -1378,7 +1378,7 @@ void Ack (struct sockaddr_in *from, char* dataPacket)
 
 			server->last_heartbeat = (unsigned long)time(NULL);
 
-			if((server->gamename) && (!stricmp(server->gamename, "quake2") || !stricmp(server->gamename, "quakeworld") || !stricmp(server->gamename, "quake1") || !stricmp(server->gamename, "hexenworld"))) /* FS: These games are too old to send a challenge back. */
+			if(!stricmp(server->gamename, "quake2") || !stricmp(server->gamename, "quakeworld") || !stricmp(server->gamename, "quake1") || !stricmp(server->gamename, "hexenworld")) /* FS: These games are too old to send a challenge back. */
 			{
 				server->validated = 1;
 			}
@@ -1558,7 +1558,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Parse_UDP_MS_List (mslist, quake2, dglen-sizeof(q2_reply_hdr));
 			return status;
 		}
-		else if (_strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) == 0) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
+		else if ((_strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) == 0) || (_strnicmp(data, (char *)qw_reply_hdr2, sizeof(qw_reply_hdr2)-1) == 0)) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
 		{
 			Con_DPrintf("[I] Got a QuakeWorld master server list!\n");
 
@@ -1573,7 +1573,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, "quake2");
+			SendUDPServerListToClient (from, (char *)"quake2");
 			return status;
 		}
 		else if(_strnicmp(data, OOB_SEQ"rcon", 8) == 0)
@@ -1604,7 +1604,7 @@ int ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, "quake2");
+			SendUDPServerListToClient (from, (char *)"quake2");
 			return status;
 		}
 		cmd +=1;
@@ -2027,7 +2027,7 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 	size_t fileBufferLen = 0;
 	char *fileBuffer = NULL;
 
-	if(motd == 0)
+	if(motd[0] == 0)
 	{
 		return;
 	}
@@ -2343,7 +2343,7 @@ retryIncomingTcpValidate:
 		}
 	}
 
-	if ((incomingTcpValidate != NULL) && (incomingTcpValidate[0] != 0))
+	if (incomingTcpValidate[0] != 0)
 	{
 		/* FS: Unofficial nastyness in DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
 		clientName = Info_ValueForKey(incomingTcpValidate, "clientname");
@@ -2420,7 +2420,7 @@ retryIncomingTcpList:
 
 	if (len != SOCKET_ERROR)
 	{
-		if( (incomingTcpList != NULL) && (incomingTcpList[0] != 0) )
+		if(incomingTcpList[0] != 0)
 		{
 			Con_DPrintf("[I] Incoming List Request: %s\n", incomingTcpList);
 		}
@@ -2746,7 +2746,7 @@ int Rcon (struct sockaddr_in *from, char *queryString)
 
 	password = DK_strtok_r(queryString, " \\n", &queryPtr);
 
-	if( (rconPassword != NULL) && (rconPassword[0] != 0) )
+	if(rconPassword[0] != 0)
 	{
 		if(password && password[0] != 0)
 		{
