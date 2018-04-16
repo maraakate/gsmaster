@@ -4,17 +4,19 @@ CC   = gpp
 # whether to use CURL for HTTP List DL
 USE_CURL=yes
 
-CFLAGS = -g -Wall -Werror -O0
-# -O2 -DNDEBUG=1
-LIBS   =
+ifeq ($(DEBUG),1)
+CFLAGS = -g -O0
+else
+CFLAGS = -O2 -fomit-frame-pointer
+endif
 
-WCFLAGS = -Iwatt32/inc
-WLFLAGS = -Lwatt32/lib -lwatt
+WCFLAGS = -Idos/watt32/inc
+WLFLAGS = -Ldos/watt32/lib -lwatt
 
 ifeq ($(USE_CURL),yes)
 CFLAGS+= -DUSE_CURL
 CURLCFLAGS+= -Ilibcurl/include
-CURLLFLAGS+= -Llibcurl/lib -lcurl
+CURLLFLAGS+= -Ldos/libcurl/lib -lcurl
 endif
 
 SERVER = master.o \
@@ -24,16 +26,15 @@ SERVER = master.o \
 	curl_dl.o
 
 
-OBJECTS =  $(SERVER)
+OBJECTS = $(SERVER)
 
-all: gspydos.exe
+all: gsmaster.exe
 
 clean:
 	rm -f *.o
 
-gspydos.exe: $(OBJECTS)
-	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gspydos.exe
+gsmaster.exe: $(OBJECTS)
+	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster.exe
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@
-

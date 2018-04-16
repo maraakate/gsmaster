@@ -1,145 +1,23 @@
 /*
+* Copyright (C) 2015-2018 Frank Sapone
 * Copyright (C) 2002-2003 r1ch.net
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
 * as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
-* 
+*
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 *
 * See the GNU General Public License for more details.
-*  
+*
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*	
+*
 */
-
-//Originally gloommaster 0.0.3 (c) 2002-2003 r1ch.net
-//quake 2 compatible master server for gloom
-
-// QwazyWabbit mods begin
-// 11-FEB-2006
-// Changes for Linux and Windows portability by Geoff Joy (QwazyWabbit)
-// Simply build for Linux with "gcc -o q2master master.c"
-//
-// 26-JAN-2007
-// Made it a general q2 server (q2master v1.0)
-//
-// 26-JUL-2007
-// Added registry keys to tell service what IP to use.
-// Added key and handling for non-standard port.
-// Server could be modified for use as Q3 or Q4 master server.
-//
-// 18-AUG-2007
-// Dynamic allocation of buffer in SendServerListToClient function.
-// 
-// 01-SEP-2007
-// General release. This project builds in VC++ 6.0 and GCC 4.x
-// Complete project easily ported to VC 2005 or higher.
-//
-
-// 09-MAY-2015 -- FS
-// Updated for specific use with Daikatana.  Will likely work with
-// other old gamespy titles that use encode type 0.
-// 10-MAY-2015 -- FS
-// Code more generic for various encode type 0 games.
-// 11-MAY-2015 -- FS
-// Validation works from a look-up table and various functions by
-// aluigi (www.aluigi.org).  Proper heartbeat times by default.
-// 15-MAY-2015 -- FS
-// Various bug fixes, clean up, etc.  Updated doc.
-//
-
-// General command line switches:
-
-// -debug	Asserts debug mode. The program prints status messages to console
-//			while running. Shows pings, heartbeats, number of servers listed.
-
-// -sendack - by default gamespy doesn't not send this type of packet out.
-//            if you want to extend the courtesy of acknowleding the
-//            heartbeat then enable this setting.
-
-// -quickvalidate - by default the master server requires 1 extra heartbeat
-//                  and a successful ping request to be added to the query
-//                  list.  Set this to allow any new server to show up
-//                  immediately.
-
-// -timestamp <1 or 2> - Debug outputs are timestampped.  1 - for AM/PM.
-//                       2 for military.
-
-// -validationrequired <1, 2, or 3> - Require validation from the challenge key
-//                                    cross-checked with the games secure key.
-//                                    1 - client list requests only.
-//                                    2 - servers.
-//                                    3 - clients and servers (recommended).
-
-// -heartbeatinterval <time in minutes> - Time in minutes for sending heartbeats.
-//                                        Must be at least 1 minute.
-
-// -minimumheartbeats x - Minimum number of sucessful heartbeats that need to be
-//                        sent before a server will be added to the list.
-
-// -ip xxx.xxx.xxx.xxx causes server to bind to a particular IP address when
-//	used with multi-homed hosts. Default is 0.0.0.0 (any).
-
-// -port xxxxx causes server to bind to a particular port. Default is 27900.
-// Default port for Quake 2 master servers is 27900. If you depart from this
-// you need to communicate this to your users somehow. This feature is included
-// since this code could be modified to provide master services for other games.
-
-// -tcpport xxxxx causes server to bind to a particular TCP port for the
-// gamespy list query from clients. Default is 28900.
-// If you depart from this you need to communicate this to your users somehow.
-// This feature is included since this code could be modified to provide 
-// master services for other games.
-
-// -serverlist <filename> - Adds servers from a list.  Hostnames are supported.
-// Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
-
-// *** Windows ***
-
-// Usage:
-// Place executable in %systemroot%\system32 or other known location.
-// To debug it as a console program, command: "master -debug" and it outputs
-// status messages to the console. Ctrl-C shuts it down.
-//
-// From a cmd prompt type: q2master -install to install the service with defaults.
-// The service will be installed as "Q2MasterServer" in the Windows service list.
-//
-
-// -install	Installs the service on Windows.
-// -remove	Stops and removes the service.
-// When the service is installed it is installed with "Automatic" startup type
-// to allow it to start up when Windows starts. Use SCM to change this.
-
-// Other commands:
-// net start q2masterserver to start the service.
-// net stop q2masterserver to stop the service.
-//
-// Use the Services control panel applet to start/stop, change startup modes etc.
-// To uninstall the server type "master -remove" to stop and remove the active service.
-
-// *** Linux ***
-
-// Usage:
-// -debug Sets process to debug mode and it remains attached to console.
-// If debug is not specified on command line the process forks a daemon and
-// detaches from terminal.
-//
-// Send the process a SIGTERM to stop the daemon. "kill -n SIGTERM <pid>"
-// Use "netstat -anup" to see the processes/pids listening on UDP ports.
-// Use "ps -ux" to list detached processes, this will show the command line that
-// invoked the q2master process.
-// 
-// *** Mac/iMac OS/X ***
-// Usage:
-// Same as Linux
-// Compiles on OS/X same as Linux & BSD "gcc -o q2master master.c".
-//
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -149,15 +27,13 @@
 #include <stdlib.h>
 #include <winerror.h>
 #include <time.h>
-
+#include <process.h>
+#include <assert.h>
 #if defined(_MSC_VER) && _MSC_VER < 1400 /* FS: VS2005 Compatibility */
 #include <winwrap.h>
 #endif
 
-#include <process.h>
 #include "service.h"
-#include "performance.h"
-#include <assert.h>
 
 // Windows Service structs
 SERVICE_STATUS          MyServiceStatus; 
@@ -213,7 +89,7 @@ int load_MasterServerlist = 0;
 
 int validate_newserver_immediately = 0; // FS
 int validation_required = 0; // FS
-int motd = 0; // FS
+int bMotd = 0; // FS
 int logTCP = 0;
 unsigned int minimumHeartbeats = 2; // FS: Minimum amount of heartbeats required before we're added to the list, used to verify it's a real server.
 double lastMasterListDL = 0; // FS
@@ -510,7 +386,7 @@ int My_Main (int argc, char **argv)
 	printf("Minimum Heartbeats Required: %u\n", minimumHeartbeats); // FS
 	printf("Timestamps: %i\n", Timestamp); // FS
 	printf("HTTP QW/Q2 Servers: %i\n", httpEnable); // FS
-	printf("MOTD: %i\n", motd);
+	printf("MOTD: %i\n", bMotd);
 	printf("Log TCP connections: %i\n", logTCP);
 
 	listener = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -1794,7 +1670,7 @@ void ParseCommandLine(int argc, char **argv)
 
 		if(_strnicmp((char*)argv[i] + 1,"motd", 4) == 0) /* FS: Added motd.txt support */
 		{
-			motd = 1;
+			bMotd = 1;
 		}
 
 		if(_strnicmp((char*)argv[i] + 1,"logtcp", 6) == 0) /* FS: Write out successful gamespy TCP requests */
@@ -2017,27 +1893,22 @@ void signal_handler(int sig)
 
 void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 {
-	SOCKET motdSocket = UDP_OpenSocket(27905);
+	SOCKET motdSocket;
 	char motd[MOTD_SIZE];
 	struct sockaddr_in addr;
-	unsigned short motdPort = Gamespy_Get_MOTD_Port(gamename);
+	unsigned short motdGamePort = Gamespy_Get_MOTD_Port(gamename);
 	FILE *f;
 	long fileSize;
 	size_t toEOF = 0;
 	size_t fileBufferLen = 0;
 	char *fileBuffer = NULL;
 
-	if(motd[0] == 0)
+	if(!motdGamePort)
 	{
 		return;
 	}
 
-	if(!motdPort)
-	{
-		return;
-	}
-
-	if(motdSocket == INVALID_SOCKET)
+	if((motdSocket = UDP_OpenSocket(27905)) == INVALID_SOCKET)
 	{
 		return;
 	}
@@ -2102,7 +1973,7 @@ void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 
 	memcpy (&addr.sin_addr, &from->sin_addr, sizeof(addr.sin_addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(motdPort);
+	addr.sin_port = htons(motdGamePort);
 	memset (&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
 	if(gamename && gamename[0] != 0 && !stricmp(gamename, "quake2")) /* FS: Green Text special for Quake 2*/
@@ -2176,7 +2047,8 @@ error:
 
 	DK_strlwr(gamename); // FS: Some games (mainly sin) stupidly send it partially uppercase
 
-	Gamespy_Send_MOTD(gamename, from); /* FS: Send a MOTD */
+	if (bMotd)
+		Gamespy_Send_MOTD(gamename, from); /* FS: Send a MOTD */
 
 	if(logTCP)
 	{

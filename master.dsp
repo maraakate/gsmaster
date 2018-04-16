@@ -37,8 +37,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release"
-# PROP Intermediate_Dir "Release"
+# PROP Output_Dir "Release\x86"
+# PROP Intermediate_Dir "Release\x86"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -51,7 +51,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib advapi32.lib shell32.lib ws2_32.lib libcurl.lib /nologo /subsystem:console /pdb:none /machine:I386 /nodefaultlib:"libc.lib"
+# ADD LINK32 kernel32.lib user32.lib advapi32.lib shell32.lib ws2_32.lib win32\libcurl_x86.lib /nologo /subsystem:console /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"Release\x86/gsmaster.exe"
 # SUBTRACT LINK32 /nodefaultlib
 
 !ELSEIF  "$(CFG)" == "master - Win32 Debug"
@@ -63,8 +63,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug"
-# PROP Intermediate_Dir "Debug"
+# PROP Output_Dir "Debug\x86"
+# PROP Intermediate_Dir "Debug\x86"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
@@ -76,7 +76,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib advapi32.lib shell32.lib ws2_32.lib libcurl.lib /nologo /subsystem:console /map /debug /machine:I386
+# ADD LINK32 kernel32.lib user32.lib advapi32.lib shell32.lib ws2_32.lib win32\libcurl_x86.lib /nologo /subsystem:console /map /debug /machine:I386
 # SUBTRACT LINK32 /profile /nodefaultlib
 
 !ENDIF 
@@ -93,26 +93,9 @@ LINK32=link.exe
 SOURCE=.\readme.txt
 # End Source File
 # End Group
-# Begin Group "aluigi"
+# Begin Group "Header Files"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\enctype1_decoder.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\enctype_shared.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\gsmalg.cpp
-# End Source File
-# End Group
-# Begin Source File
-
-SOURCE=.\curl_dl.cpp
-# End Source File
 # Begin Source File
 
 SOURCE=.\curl_dl.h
@@ -123,35 +106,11 @@ SOURCE=.\DG_misc.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\dk_essentials.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\dk_essentials.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\gamestable.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\master.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\master.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\performance.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\performance.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\service.cpp
 # End Source File
 # Begin Source File
 
@@ -161,5 +120,34 @@ SOURCE=.\service.h
 
 SOURCE=.\shared.h
 # End Source File
+# End Group
+# Begin Group "Source Files"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\curl_dl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\dk_essentials.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gamestable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsmalg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\master.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\service.cpp
+# End Source File
+# End Group
 # End Target
 # End Project

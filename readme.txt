@@ -1,18 +1,46 @@
 	    GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
-                Various code snippets by sezero and aluigi
 
-Quickly, this is mainly for Daikatana 1.3 (but should work OK with older encode
-type 0 gamespy enabled games).  Based off of Q2Master v1.1 by QwazyWabbit.
-Supports the TCP handshake.  Probable exploits, this is one of my first times
-playing around with sockets. If you find some serious issues email me
+==========================
+1. Welcome
+==========================
+A GameSpy EncType 0 emulator.  Based off of Q2Master v1.1 by QwazyWabbit.
+Probable exploits, if you find some serious issues email me
 emoaddict15@gmail.com.
 
-Also supports QW, Q2, HW and Q1.  This is the same master server in use
-for QDOS and Q2DOS for their server browsers.
+==========================
+2. Welcome
+==========================
+* Blood 2
+* Daikatana
+* GameSpy Lite Utility (used by Kingpin and South Park),
+* Heretic 2
+* Hexen 2
+* HexenWorld
+* Kingpin
+* No One Lives Forever
+* Quake 1
+* QuakeSpy Utility
+* QuakeWorld
+* Quake 2
+* Shogo
+* SiN
+* South Park
+* Turok 2
+* Unreal 1
+* Unreal Tournament 99
 
-QuakeSpy QW emulation is also available.
+This master server code is used in Daikatana v1.3, QDOS, QWDOS, and Q2DOS
+for their server browsers.
 
-New command line switches:
+TCP Port 28900 and UDP Port 27900 must be open.  You may have to open
+additional ports for the games you wish to support.  For example most
+Quake 2 servers use port 27910.  Daikatana uses two ports, 27992 for the
+connection and 27982 for the GameSpy query.  Other games may use this
+port scheme.
+
+==========================
+3. Commands
+==========================
  -sendack - by default gamespy doesn't not send this type of packet out.
             if you want to extend the courtesy of acknowleding the
             heartbeat then enable this setting.
@@ -56,12 +84,27 @@ New command line switches:
   Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27900,quakeworld.
 
 
-NOTES:  DJGPP port is currently broken.  Compiles and executes fine, but only
-        pings the last server in a large batch.
+==========================
+4. Known Bugs
+==========================
+* DJGPP port is currently broken.  Compiles and executes fine, but only
+  pings the last server in a large batch.
+* FreeBSD printf and logging stops working after entering the main while loop.
+  Not an issue if being run as a daemon.
 
+==========================
+5. Credits
+==========================
+[HCI]Mara'akate - Code
+Daniel Gibson - DG_misc.h string header
+Luigi Auriemma - gsmalg.cpp for GameSpy validation algorithim (aluigi.org)
+QwazyWabbit - Original Code for Q2Master
+Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
+ID Software - Quake 2 Info_ValueForKeys and other small helper functions
 
-... Original Readme...
-
+==========================
+6. Original Readme
+==========================
 			Quake 2 Master v1.1 by QwazyWabbit
 
 This program is a modification of R1ch's GloomMaster server.
