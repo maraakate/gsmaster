@@ -1,8 +1,86 @@
 #ifndef MASTER_H
 #define MASTER_H
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+#define PORTREUSE SO_REUSEADDR
+void SetQ2MasterRegKey(char* name, char *value);
+void GetQ2MasterRegKey(char* name, char *value);
+typedef int socklen_t;
+#define selectsocket select
+#define stricmp _stricmp
+#define strdup _strdup
+
+#else
+
+// Linux and Mac versions
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
+#include <errno.h>
+#include <unistd.h>
+#ifndef __FreeBSD__
+#include <tcp.h>
+#endif
+
+#ifndef __DJGPP__
+	#include <sys/signal.h>
+#else
+	#include <signal.h>
+#endif /* __DJGPP__ */
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <assert.h>
+
+enum {FALSE, TRUE};
+
+// stuff not defined in sys/socket.h
+#ifndef SOCKET
+#define SOCKET unsigned int
+#endif /* SOCKET */
+
+#ifdef __DJGPP__
+#define selectsocket select_s
+extern int	_watt_do_exit;	/* in sock_ini.h, but not in public headers. */
+#else
+#define selectsocket select
+#endif /* __DJGPP__ */
+
+#ifndef SOCKET_ERROR
+	#define SOCKET_ERROR -1
+#endif
+
+#ifndef INVALID_SOCKET
+	#define INVALID_SOCKET -1
+#endif
+
+#define TIMEVAL struct timeval
+#define ioctlsocket ioctl
+
+#ifdef __FreeBSD__
+#define PORTREUSE SO_REUSEPORT
+#else
+#define PORTREUSE SO_REUSEADDR
+#endif
+
+// portability, rename or delete functions
+#define _strnicmp strncasecmp
+#define _stricmp strcasecmp
+#define stricmp strcasecmp
+#define My_Main main
+#define closesocket close // FS
+#define SetQ2MasterRegKey(x,y)
+#define	GetQ2MasterRegKey(x,y)
+#define WSACleanup()
+void signal_handler(int sig);
+
 #endif
 
 #include "shared.h"
