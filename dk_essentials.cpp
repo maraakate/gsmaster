@@ -11,6 +11,7 @@ void Com_sprintf( char *dest, int size, const char *fmt, ... )
 	va_list	argptr;
 
 	va_start(argptr,fmt);
+//	vsprintf(dest, fmt, argptr);
 	DK_vsnprintf(dest, size, fmt, argptr);
 	// TODO: print warning if cut off!
 	va_end(argptr);

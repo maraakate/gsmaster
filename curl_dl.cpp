@@ -17,7 +17,7 @@
 #ifdef _WIN32
 	#include "curl/curl.h"
 #else
-	#include "../libcurl/include/curl/curl.h"
+	#include "libcurl/include/curl/curl.h"
 #endif // WIN32
 
 #define CURL_ERROR(x)	curl_easy_strerror(x)
