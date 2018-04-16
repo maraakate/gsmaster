@@ -44,7 +44,7 @@
 #define __DG_MISC_H__
 
 #include <stdarg.h> // FS
-#if defined(_MSC_VER) && _MSC_VER <= 1400 // FS
+#if defined(_MSC_VER) && _MSC_VER < 1400 // FS
 	typedef unsigned int uintptr_t;
 #endif
 

@@ -416,9 +416,9 @@ void Log_Sucessful_TCP_Connections(char *logbuffer)
 	fclose(f);
 }
 
-int UDP_OpenSocket (int port)
+SOCKET UDP_OpenSocket (int port)
 {
-	int newsocket;
+	SOCKET newsocket;
 	struct sockaddr_in address;
 
 	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET)
@@ -853,7 +853,7 @@ int My_Main (int argc, char **argv)
 }
 
 // FS
-void Close_TCP_Socket_On_Error (int socket, struct sockaddr_in *from)
+void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from)
 {
 	Con_DPrintf ("[E] TCP socket error during accept from %s:%d (%s)\n",
 		inet_ntoa (from->sin_addr),
@@ -1381,7 +1381,7 @@ void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
 
 // FS: Gamespy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
 // FS: Gamespy non-basic data is in the form of '<sin_addr><sin_port>\final\'
-void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *from, int basic)
+void SendGamespyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, int basic)
 {
 	int				buflen;
 	char			*buff;
@@ -1945,7 +1945,7 @@ void ParseCommandLine(int argc, char **argv)
 			if(!DG_strlen(logtcp_filename) || logtcp_filename[0] == '-')
 			{
 				DG_strlcpy(logtcp_filename, LOGTCP_DEFAULTNAME, sizeof(logtcp_filename));
-				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, (int)DG_strlen(logtcp_filename));
+				printf("No filename specified for logtcp.  Using default: %s %i\n", logtcp_filename, DG_strlen(logtcp_filename));
 			}
 			else
 			{
@@ -2072,7 +2072,7 @@ void SetQ2MasterRegKey(char* name, char *value)
 		Con_DPrintf("Error creating registry key for %s\n", SZSERVICEDISPLAYNAME);
 	}
 	
-	status = RegSetValueEx(hKey, name, 0, REG_SZ, (unsigned char*)value, DG_strlen(value));
+	status = RegSetValueEx(hKey, name, 0, REG_SZ, (unsigned char*)value, (DWORD)DG_strlen(value));
 	
 	if(status)
 	{
@@ -2156,7 +2156,7 @@ void signal_handler(int sig)
 
 void Gamespy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 {
-	int motdSocket = UDP_OpenSocket(27905);
+	SOCKET motdSocket = UDP_OpenSocket(27905);
 	char motd[MOTD_SIZE];
 	struct sockaddr_in addr;
 	unsigned short motdPort = Gamespy_Get_MOTD_Port(gamename);
@@ -2617,7 +2617,7 @@ closeTcpSocket:
 	memset (incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset (incomingTcpList, 0, sizeof(incomingTcpList));
 	closesocket(socket);
-	tcpRetval = INVALID_SOCKET;
+	tcpRetval = 0;
 }
 
 void Add_Servers_From_List(char *filename)

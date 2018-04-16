@@ -124,13 +124,13 @@ void ParseCommandLine(int argc, char *argv[]);
 int ParseResponse (struct sockaddr_in *from, char *data, int dglen);
 
 /* FS: Gamespy specific helper functions */
-void SendGamespyListToClient (int socket, char *gamename, struct sockaddr_in *from, int basic);
-void Close_TCP_Socket_On_Error (int socket, struct sockaddr_in *from);
+void SendGamespyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, int basic);
+void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from);
 void Gamespy_Parse_List_Request(char *clientName, char *querystring, int socket, struct sockaddr_in *from);
 int Gamespy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey);
 void Gamespy_Parse_UDP_Packet(int socket, struct sockaddr_in *from);
 void Gamespy_Parse_TCP_Packet (int socket, struct sockaddr_in *from);
-int UDP_OpenSocket (int port);
+SOCKET UDP_OpenSocket (int port);
 
 #ifdef QUAKE2_SERVERS
 void SendServerListToClient (struct sockaddr_in *from);

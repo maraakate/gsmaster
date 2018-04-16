@@ -183,7 +183,7 @@ char *DK_strlwr (char *s)
 }
 
 // FS: From Quake 2's Cbuf_Execute
-void Parse_ServerList (unsigned int fileSize, char *fileBuffer, char *gamenameFromHttp)
+void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp)
 {
 	unsigned int		i;
 	char	*text;
