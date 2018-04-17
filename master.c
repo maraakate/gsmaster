@@ -98,7 +98,7 @@ static const char finalstring[] = "final\\";
 static const char finalstringerror[] = "\\final\\";
 static const char statusstring[] = "\\status\\secure\\";
 static const char quakestatusstring[] = "status"; /* FS: Q1 and QW use this */
-static const char quake1string[13] = "\x80\x00\x00\x0C\x02QUAKE\x00\x03"; /* FS: Raw data that's sent down for a "QUAKE" query string */
+static const char quake1string[] = "\x80\x00\x00\x0C\x02QUAKE\x00\x03"; /* FS: Raw data that's sent down for a "QUAKE" query string */
 static const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
 
@@ -768,14 +768,11 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	}
 	else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 	{
-		Com_sprintf(validateString, sizeof(validateString), "%s", hexenworldstatusstring);
+		memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
 	}
 	else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 	{
-		int x;
-
-		for(x = 0; x < (int)sizeof(quake1string); x++)
-			validateString[x] = quake1string[x];
+		memcpy(validateString, quake1string, sizeof(validateString)-1);
 	}
 	else
 	{
@@ -844,14 +841,11 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		}
 		else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 		{
-			Com_sprintf(validateString, sizeof(validateString), "%s", hexenworldstatusstring);
+			memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
 		}
 		else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 		{
-			int x;
-
-			for(x = 0; x < (int)sizeof(quake1string); x++)
-				validateString[x] = quake1string[x];
+			memcpy(validateString, quake1string, sizeof(validateString)-1);
 		}
 		else
 		{
@@ -927,14 +921,11 @@ static void RunFrame (void)
 				}
 				else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 				{
-					Com_sprintf(validateString, sizeof(validateString), "%s", hexenworldstatusstring);
+					memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
 				}
 				else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 				{
-					int x;
-
-					for(x = 0; x < (int)sizeof(quake1string); x++)
-						validateString[x] = quake1string[x];
+					memcpy(validateString, quake1string, sizeof(validateString)-1);
 				}
 				else
 				{
@@ -1336,14 +1327,11 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			}
 			else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 			{
-				Com_sprintf(validateString, sizeof(validateString), "%s", hexenworldstatusstring);
+				memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
 			}
 			else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 			{
-				int x;
-
-				for(x = 0; x < (int)sizeof(quake1string); x++)
-					validateString[x] = quake1string[x];
+				memcpy(validateString, quake1string, sizeof(validateString)-1);
 			}
 			else
 			{
