@@ -390,9 +390,9 @@ int gsmaster_main (int argc, char **argv)
 	memset (&listenaddressTCP, 0, sizeof(listenaddressTCP));
 
 	// only in Windows, null def in Linux
-	GetQ2MasterRegKey(REGKEY_BIND_IP, bind_ip);
-	GetQ2MasterRegKey(REGKEY_BIND_PORT, bind_port);
-	GetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
+	GetGSMasterRegKey(REGKEY_BIND_IP, bind_ip);
+	GetGSMasterRegKey(REGKEY_BIND_PORT, bind_port);
+	GetGSMasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
 
 	/* FS: Ensure we don't set the ports to something stupid or have corrupt registry values */
 	Check_Port_Boundaries();
@@ -984,7 +984,7 @@ static void RunFrame (void)
 // listed server into a buffer for transmission to the client in response
 // to a query frame.
 //
-static void SendUDPServerListToClient (struct sockaddr_in *from, char *gamename)
+static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gamename)
 {
 	int				buflen;
 	int				udpheadersize;
@@ -1443,7 +1443,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, (char *)"quake2");
+			SendUDPServerListToClient (from, "quake2");
 			return;
 		}
 		else if(!strnicmp(data, OOB_SEQ"rcon", 8))
@@ -1474,7 +1474,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, (char *)"quake2");
+			SendUDPServerListToClient (from, "quake2");
 			return;
 		}
 		cmd +=1;
@@ -1651,21 +1651,21 @@ void ParseCommandLine(int argc, char **argv)
 		{
 			//bind_ip, a specific host ip if desired
 			DG_strlcpy(bind_ip, argv[i+1], sizeof(bind_ip));
-			SetQ2MasterRegKey(REGKEY_BIND_IP, bind_ip);
+			SetGSMasterRegKey(REGKEY_BIND_IP, bind_ip);
 		}
 		
 		if(!strnicmp(argv[i] + 1, "port", 4))
 		{
 			//bind_port, if other than default port
 			DG_strlcpy(bind_port, argv[i+1], sizeof(bind_port));
-			SetQ2MasterRegKey(REGKEY_BIND_PORT, bind_port);
+			SetGSMasterRegKey(REGKEY_BIND_PORT, bind_port);
 		}
 
 		if(!strnicmp(argv[i] + 1, "tcpport", 7))
 		{
 			//bind_port_tcp, if other than default TCP port
 			DG_strlcpy(bind_port_tcp, argv[i+1], sizeof(bind_port_tcp));
-			SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
+			SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
 		}
 
 		if(!strnicmp(argv[i] + 1, "serverlist", 10))
@@ -1798,14 +1798,14 @@ void ServiceStop(void)
 * service listening on all of them. Not as painful on Linux, we do the -ip switch
 * in the command line.
 */
-void SetQ2MasterRegKey(char* name, char *value)
+void SetGSMasterRegKey(const char* name, const char *value)
 {
 	HKEY	hKey;
 	DWORD	Disposition;
-	LONG	status;
+	LRESULT	status;
 	
 	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, 
-		REGKEY_Q2MASTERSERVER,
+		REGKEY_GSMASTERSERVER,
 		0, //always 0
 		NULL,
 		REG_OPTION_NON_VOLATILE,
@@ -1835,16 +1835,16 @@ void SetQ2MasterRegKey(char* name, char *value)
 // The user can add the Bind_IP or Bind_Port value 
 // by hand or use the -ip x.x.x.x command line switch.
 //
-void GetQ2MasterRegKey(char* name, char *value)
+void GetGSMasterRegKey(const char* name, const char *value)
 {
 	HKEY	hKey;
 	DWORD	Disposition;
-	LONG	status;
+	LRESULT	status;
 	DWORD	size = KEY_LEN;	// expected max size of the bind_ip or bind_port array
 	
 	// check value, create it if it doesn't exist
 	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, 
-		REGKEY_Q2MASTERSERVER,
+		REGKEY_GSMASTERSERVER,
 		0, //always 0
 		NULL,
 		REG_OPTION_NON_VOLATILE,
@@ -1862,7 +1862,7 @@ void GetQ2MasterRegKey(char* name, char *value)
 
 	if(status)
 	{
-		Con_DPrintf("Registry value not found %s\\%s\n", REGKEY_Q2MASTERSERVER, name);
+		Con_DPrintf("Registry value not found %s\\%s\n", REGKEY_GSMASTERSERVER, name);
 	}
 	
 	RegCloseKey(hKey);
@@ -2564,14 +2564,14 @@ static void Check_Port_Boundaries (void)
 	if(bind_port[0] == 0 || udp < 1)
 	{
 		printf("[W] UDP Port is 0!  Setting to default value of 27900\n");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT, "27900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
 		DG_strlcpy(bind_port,"27900", 6);
 		udp = 27900;
 	}
 	else if(udp > 65536)
 	{
 		printf("[W] UDP Port is greater than 65536!  Setting to default value of 27900\n");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT, "27900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
 		DG_strlcpy(bind_port,"27900", 6);
 		udp = 27900;
 	}
@@ -2579,14 +2579,14 @@ static void Check_Port_Boundaries (void)
 	if(bind_port_tcp[0] == 0 || tcp < 1)
 	{
 		printf("[W] TCP Port is 0!  Setting to default value of 28900\n");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
 		DG_strlcpy(bind_port_tcp,"28900", 6);
 		tcp = 28900;
 	}
 	else if(tcp > 65536)
 	{
 		printf("[W] TCP Port is greater than 65536!  Setting to default value of 28900\n");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
 		DG_strlcpy(bind_port_tcp,"28900", 6);
 		tcp = 28900;
 	}
@@ -2594,8 +2594,8 @@ static void Check_Port_Boundaries (void)
 	if(tcp == udp)
 	{
 		printf("[W] UDP and TCP Ports are the same values!  Setting to defaults.\n");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT, "27900");
-		SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
+		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
 		DG_strlcpy(bind_port,"27900", 6);
 		DG_strlcpy(bind_port_tcp,"28900", 6);
 	}
@@ -2908,17 +2908,17 @@ static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *fr
 		if(!memcmp(incoming, hw_hwq_msg, 3))
 		{
 			Con_DPrintf("[I] HexenWorld hwmquery master server query.\n");
-			SendUDPServerListToClient(from, (char *)"hexenworld");
+			SendUDPServerListToClient(from, "hexenworld");
 		}
 		else if(!memcmp(incoming, hw_gspy_msg, 3))
 		{
 			Con_DPrintf("[I] HexenWorld GameSpy master server query.\n");
-			SendUDPServerListToClient(from, (char *)"hexenworld");
+			SendUDPServerListToClient(from, "hexenworld");
 		}
 		else if (!memcmp(incoming, qw_msg, 2))
 		{
 			Con_DPrintf("[I] QuakeSpy master server query.\n");
-			SendUDPServerListToClient(from, (char *)"quakeworld");
+			SendUDPServerListToClient(from, "quakeworld");
 		}
 		else if (!memcmp(incoming, hw_server_msg, 3))
 		{

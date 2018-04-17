@@ -1,5 +1,4 @@
-CC   = gcc
-#STRIP= strip
+CC = gcc
 
 # whether to use CURL for HTTP List DL
 USE_CURL=yes
@@ -10,13 +9,15 @@ else
 CFLAGS = -O2 -fomit-frame-pointer
 endif
 
+CFLAGS +=-Wall -Werror
+
 WCFLAGS = -Idos/watt32/inc
 WLFLAGS = -Ldos/watt32/lib -lwatt
 
 ifeq ($(USE_CURL),yes)
-CFLAGS+= -DUSE_CURL
-CURLCFLAGS+= -Ilibcurl/include
-CURLLFLAGS+= -Ldos/libcurl/lib -lcurl
+CFLAGS+=-DUSE_CURL
+CURLCFLAGS = -Ilibcurl/include
+CURLLFLAGS = -Ldos/libcurl/lib -lcurl
 endif
 
 SERVER = master.o \

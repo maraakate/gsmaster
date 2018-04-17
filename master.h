@@ -4,8 +4,8 @@
 #ifdef _WIN32
 
 #define PORTREUSE SO_REUSEADDR
-void SetQ2MasterRegKey(char* name, char *value);
-void GetQ2MasterRegKey(char* name, char *value);
+void SetGSMasterRegKey(const char* name, const char *value);
+void GetGSMasterRegKey(const char* name, const char *value);
 typedef int socklen_t;
 #define selectsocket(x, y, z, a, b) select((int)x, y, z, a, b) /* FS: nfds is fake on Windows.  Cast it to int so x64 VS2005 shuts up */
 
@@ -71,8 +71,8 @@ extern int	_watt_do_exit;	/* in sock_ini.h, but not in public headers. */
 #define stricmp strcasecmp
 #define gsmaster_main main
 #define closesocket close
-#define SetQ2MasterRegKey(x,y)
-#define	GetQ2MasterRegKey(x,y)
+#define SetGSMasterRegKey(x,y)
+#define GetGSMasterRegKey(x,y)
 #define WSACleanup()
 void signal_handler(int sig);
 

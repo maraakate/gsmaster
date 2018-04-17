@@ -11,7 +11,7 @@
 #define SRV_STOP	0
 #define SRV_STOPPED	-1
 
-#define VERSION "0.2f"
+#define VERSION "0.3a"
 
 #ifndef NULL
 #define NULL 0
@@ -54,7 +54,7 @@ typedef enum {false, true} bool;
 //
 // These are Windows specific but need to be defined here so GCC won't barf
 //
-#define REGKEY_Q2MASTERSERVER "SOFTWARE\\GSMasterServer" // Our config data goes here
+#define REGKEY_GSMASTERSERVER "SOFTWARE\\GSMasterServer" // Our config data goes here
 #define REGKEY_BIND_IP "Bind_IP"
 #define REGKEY_BIND_PORT "Bind_Port"
 #define REGKEY_BIND_PORT_TCP "Bind_Port_TCP" /* FS: For GameSpy TCP port */
