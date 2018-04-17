@@ -2861,44 +2861,44 @@ static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *fr
 	}
 	else
 	{
-		if(!memcmp(incoming, hw_hwq_msg, 3))
+		if(!memcmp(incoming, hw_hwq_msg, sizeof(hw_hwq_msg)))
 		{
 			Con_DPrintf("[I] HexenWorld hwmquery master server query.\n");
 			SendUDPServerListToClient(from, "hexenworld");
 		}
-		else if(!memcmp(incoming, hw_gspy_msg, 3))
+		else if(!memcmp(incoming, hw_gspy_msg, sizeof(hw_gspy_msg)))
 		{
 			Con_DPrintf("[I] HexenWorld GameSpy master server query.\n");
 			SendUDPServerListToClient(from, "hexenworld");
 		}
-		else if (!memcmp(incoming, qw_msg, 2))
+		else if (!memcmp(incoming, qw_msg, sizeof(qw_msg)))
 		{
 			Con_DPrintf("[I] QuakeSpy master server query.\n");
 			SendUDPServerListToClient(from, "quakeworld");
 		}
-		else if (!memcmp(incoming, hw_server_msg, 3))
+		else if (!memcmp(incoming, hw_server_msg, sizeof(hw_server_msg)))
 		{
 			Con_DPrintf("[I] HexenWorld Server sending a ping.\n");
 			Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n",inet_ntoa(from->sin_addr), ntohs(from->sin_port));
 			AddServers_From_List_Execute(serverName, 0);
 		}
-		else if (!memcmp(incoming, qw_server_msg, 2))
+		else if (!memcmp(incoming, qw_server_msg, sizeof(qw_server_msg)))
 		{
 			Con_DPrintf("[I] QuakeWorld Server sending a ping.\n");
 			Com_sprintf(serverName, sizeof(serverName), "%s:%d,quakeworld\n",inet_ntoa(from->sin_addr), ntohs(from->sin_port));
 			AddServers_From_List_Execute(serverName, 0);
 		}
-		else if (!memcmp(incoming, hw_server_shutdown, 3))
+		else if (!memcmp(incoming, hw_server_shutdown, sizeof(hw_server_shutdown)))
 		{
 			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\2", ntohs(from->sin_port));
 			HeartBeat(from, shutdownPacket);
 		}
-		else if (!memcmp(incoming, qw_server_shutdown, 2))
+		else if (!memcmp(incoming, qw_server_shutdown, sizeof(qw_server_shutdown)))
 		{
 			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\2", ntohs(from->sin_port));
 			HeartBeat(from, shutdownPacket);
 		}
-		else if(!memcmp(incoming, qspy_req_msg, 2)) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
+		else if(!memcmp(incoming, qspy_req_msg, sizeof(qspy_req_msg))) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
 		{
 			Con_DPrintf("[I] QuakeSpy master server verify.\n");
 			sendto(connection, (char *)qspy_req_msg, sizeof(qspy_req_msg), 0, (struct sockaddr *)from, sizeof(*from));
