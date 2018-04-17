@@ -1,4 +1,4 @@
-CC   = gpp
+CC   = gcc
 #STRIP= strip
 
 # whether to use CURL for HTTP List DL
@@ -36,5 +36,5 @@ clean:
 gsmaster.exe: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster.exe
 
-%.o: %.cpp
+%.o: %.c
 	$(CC) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@

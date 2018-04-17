@@ -413,7 +413,7 @@
 			Name="Source Files"
 			>
 			<File
-				RelativePath="curl_dl.cpp"
+				RelativePath="curl_dl.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -449,7 +449,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="dk_essentials.cpp"
+				RelativePath="dk_essentials.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -485,7 +485,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="gamestable.cpp"
+				RelativePath="gamestable.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -521,7 +521,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="gsmalg.cpp"
+				RelativePath="gsmalg.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -557,7 +557,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="master.cpp"
+				RelativePath="master.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -593,7 +593,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="service.cpp"
+				RelativePath="service.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"

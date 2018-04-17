@@ -316,20 +316,23 @@ DG_MISC_DEF const char* DG_GetExecutablePath(void)
 DG_MISC_DEF const char* DG_GetExecutableDir(void)
 {
 	static char exeDir[PATH_MAX] = {0};
+	const char* exePath = NULL;
+	char* lastSlash = NULL;
+	char* lastBackSlash = NULL;
 
 	if(exeDir[0] != '\0') return exeDir;
 
 	// the following code should only be executed at the first call of this function
-	const char* exePath = DG_GetExecutablePath();
+	exePath = DG_GetExecutablePath();
 
 	if(exePath == NULL || exePath[0] == '\0') return exeDir;
 
 	DG_strlcpy(exeDir, exePath, PATH_MAX);
 
 	// cut off executable name
-	char* lastSlash = strrchr(exeDir, '/');
+	lastSlash = strrchr(exeDir, '/');
 #ifdef _WIN32
-	char* lastBackSlash = strrchr(exeDir, '\\');
+	lastBackSlash = strrchr(exeDir, '\\');
 	if(lastSlash == NULL || lastBackSlash > lastSlash) lastSlash = lastBackSlash;
 #endif // _WIN32
 
@@ -341,17 +344,21 @@ DG_MISC_DEF const char* DG_GetExecutableDir(void)
 DG_MISC_DEF const char* DG_GetExecutableFilename(void)
 {
 	static const char* exeName = "";
+	const char* exePath = NULL;
+	const char* lastSlash = NULL;
+	const char* lastBackSlash = NULL;
+
 	if(exeName[0] != '\0') return exeName;
 
 	// the following code should only be executed at the first call of this function
-	const char* exePath = DG_GetExecutablePath();
+	exePath = DG_GetExecutablePath();
 
 	if(exePath == NULL || exePath[0] == '\0') return exeName;
 
 	// cut off executable name
-	const char* lastSlash = strrchr(exePath, '/');
+	lastSlash = strrchr(exePath, '/');
 #ifdef _WIN32
-	const char* lastBackSlash = strrchr(exePath, '\\');
+	lastBackSlash = strrchr(exePath, '\\');
 	if(lastSlash == NULL || lastBackSlash > lastSlash) lastSlash = lastBackSlash;
 #endif // _WIN32
 
@@ -367,10 +374,13 @@ DG_MISC_DEF const char* DG_GetExecutableFilename(void)
 
 DG_MISC_DEF char* DG_strndup(const char* str, size_t n)
 {
+	size_t len = 0;
+	char* ret = NULL;
+
 	DG_MISC_ASSERT(str != NULL, "Don't call DG_strndup() with NULL!");
 
-	size_t len = DG_strnlen(str, n);
-	char* ret = (char*)malloc(len+1); // need one more byte for terminating 0
+	len = DG_strnlen(str, n);
+	ret = (char*)malloc(len+1); // need one more byte for terminating 0
 	if(ret != NULL)
 	{
 		memcpy(ret, str, len);
@@ -394,8 +404,9 @@ DG_MISC_DEF char* DG_strndup(const char* str, size_t n)
 
 DG_MISC_DEF size_t DG_strlcpy(char* dst, const char* src, size_t dstsize)
 {
+	size_t srclen = 0;
 	DG_MISC_ASSERT(src && dst, "Don't call strlcpy with NULL arguments!");
-	size_t srclen = DG_strlen(src);
+	srclen = DG_strlen(src);
 
 	if(dstsize != 0)
 	{
@@ -411,10 +422,11 @@ DG_MISC_DEF size_t DG_strlcpy(char* dst, const char* src, size_t dstsize)
 
 DG_MISC_DEF size_t DG_strlcat(char* dst, const char* src, size_t dstsize)
 {
+	size_t dstlen = 0, srclen = 0;
 	DG_MISC_ASSERT(src && dst, "Don't call strlcat with NULL arguments!");
 
-	size_t dstlen = DG_strnlen(dst, dstsize);
-	size_t srclen = DG_strlen(src);
+	dstlen = DG_strnlen(dst, dstsize);
+	srclen = DG_strlen(src);
 
 	DG_MISC_ASSERT(dstlen != dstsize, "dst must contain null-terminated data with strlen < dstsize!");
 
@@ -436,6 +448,13 @@ DG_MISC_DEF size_t DG_strlcat(char* dst, const char* src, size_t dstsize)
 DG_MISC_DEF void* DG_memmem(const void* haystack, size_t haystacklen,
                             const void* needle, size_t needlelen)
 {
+	unsigned char* h = NULL;
+	unsigned char* n = NULL;
+	unsigned char* afterlast = NULL;
+	unsigned char* n0candidate = NULL;
+	size_t hlen_for_needle_start = 0;
+	int n0 = 0;
+
 	DG_MISC_ASSERT((haystack != NULL || haystacklen == 0)
 			&& (needle != NULL || needlelen == 0),
 			"Don't pass NULL into DG_memmem(), unless the corresponding len is 0!");
@@ -444,8 +463,8 @@ DG_MISC_DEF void* DG_memmem(const void* haystack, size_t haystacklen,
 	// glibc has a very optimized version of this, use that instead
 	return memmem(haystack, haystacklen, needle, needlelen);
 #else
-	unsigned char* h = (unsigned char*)haystack;
-	unsigned char* n = (unsigned char*)needle;
+	h = (unsigned char*)haystack;
+	n = (unsigned char*)needle;
 
 	if(needlelen == 0) return (void*)haystack; // this is what glibc does..
 	if(haystacklen < needlelen) return NULL; // also handles haystacklen == 0
@@ -455,11 +474,11 @@ DG_MISC_DEF void* DG_memmem(const void* haystack, size_t haystacklen,
 	// TODO: knuth-morris-pratt or boyer-moore or something like that might be a lot faster.
 
 	// the byte after the last byte needle could start at so it'd still fit into haystack
-	unsigned char* afterlast = h + haystacklen - needlelen + 1;
+	afterlast = h + haystacklen - needlelen + 1;
 	// haystack length up to afterlast
-	size_t hlen_for_needle_start = afterlast - h;
-	int n0 = n[0];
-	unsigned char* n0candidate = (unsigned char*)memchr(h, n0, hlen_for_needle_start);
+	hlen_for_needle_start = afterlast - h;
+	n0 = n[0];
+	n0candidate = (unsigned char*)memchr(h, n0, hlen_for_needle_start);
 
 	while(n0candidate != NULL)
 	{
@@ -514,6 +533,7 @@ DG_MISC_DEF void* DG_memrchr(const void* buf, unsigned char c, size_t buflen)
  */
 DG_MISC_DEF char* DG_strtok_r(char* str, const char* delim, char** context)
 {
+	char* ret;
 	DG_MISC_ASSERT(context && delim, "Don't call DG_strtok_r() with delim or context set to NULL!");
 	DG_MISC_ASSERT(str || *context, "Don't call DG_strtok_r() with *context and str both set to NULL!");
 
@@ -528,7 +548,6 @@ DG_MISC_DEF char* DG_strtok_r(char* str, const char* delim, char** context)
 	// I don't wanna use MSVC's strtok_s(), because C11 defines a function with
 	// that name but a totally different signature.. and it's not supported
 	// by old MSVC versions.
-	char* ret;
 
 	if (str == NULL) str = *context;
 
@@ -552,6 +571,20 @@ DG_MISC_DEF char* DG_strtok_r(char* str, const char* delim, char** context)
 
 DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 {
+#if defined(_MSC_VER) && !defined(_WIN64)
+	// some older MSVC versions (tested 6.0) don't support ULL suffixes.. not sure
+	// when they started supporting them, but for non-64bit windows these constants works
+	static const uintptr_t magic1 = 0x01010101uL;
+	static const uintptr_t magic2 = 0x80808080uL;
+#else // better compilers/64bit win
+	static const uintptr_t magic1 = (sizeof(uintptr_t) == 4) ? 0x01010101uL : 0x0101010101010101uLL;
+	static const uintptr_t magic2 = (sizeof(uintptr_t) == 4) ? 0x80808080uL : 0x8080808080808080uLL;
+#endif
+	uintptr_t s_alnI = 0;
+	const uintptr_t* s_aln = NULL;
+	const char* s_last = NULL;
+	const char* cur = NULL;
+
 	DG_MISC_ASSERT(s != NULL, "Don't call DG_strnlen() with NULL!");
 
 #if (defined(__GLIBC__) || defined(__APPLE__)) && !defined(DG_MISC_NO_GNU_SOURCE)
@@ -569,23 +602,14 @@ DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 	// that trick only works (at least in the way I've implemented it) with 32bit and 64bit systems
 	DG_MISC_ASSERT((sizeof(uintptr_t) == 4 || sizeof(uintptr_t) == 8), "DG_strnlen() only works for 32bit and 64bit systems!");
 	// these magic numbers are used for the trick:
-#if defined(_MSC_VER) && !defined(_WIN64)
-	// some older MSVC versions (tested 6.0) don't support ULL suffixes.. not sure
-	// when they started supporting them, but for non-64bit windows these constants works
-	static const uintptr_t magic1 = 0x01010101uL;
-	static const uintptr_t magic2 = 0x80808080uL;
-#else // better compilers/64bit win
-	static const uintptr_t magic1 = (sizeof(uintptr_t) == 4) ? 0x01010101uL : 0x0101010101010101uLL;
-	static const uintptr_t magic2 = (sizeof(uintptr_t) == 4) ? 0x80808080uL : 0x8080808080808080uLL;
-#endif
 
 	// let's get the empty buffer special case out of the way...
 	if(n==0) return 0;
 
 	// s aligned to the next word boundary
-	uintptr_t s_alnI = ((uintptr_t)s + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t)-1);
-	const uintptr_t* s_aln = (uintptr_t *)s_alnI;
-	const char* s_last = (const char*)(~((uintptr_t)0)); // highest possible address (all bits are 1)
+	s_alnI = ((uintptr_t)s + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t)-1);
+	s_aln = (uintptr_t *)s_alnI;
+	s_last = (const char*)(~((uintptr_t)0)); // highest possible address (all bits are 1)
 
 	if(n < (uintptr_t)(s_last - s))
 	{
@@ -600,7 +624,7 @@ DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 	}
 
 	// check bytes between s and s_aln
-	const char* cur = s;
+	cur = s;
 	for( ; cur < (const char*)s_aln; ++cur)
 	{
 		if(*cur == '\0')
@@ -619,8 +643,8 @@ DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 
 		if(m1 & m2)
 		{
-			cur = (const char*)s_aln;
 			size_t i;
+			cur = (const char*)s_aln;
 			for(i=0; i<sizeof(uintptr_t); ++i)
 			{
 				if(cur[i] == '\0')
@@ -671,11 +695,11 @@ DG_MISC_DEF size_t DG_strlen(const char* s)
 
 DG_MISC_DEF int DG_vsnprintf(char *dst, size_t size, const char *format, va_list ap)
 {
+	int ret = -1;
 	DG_MISC_ASSERT(format, "Don't pass a NULL format into DG_vsnprintf()!");
 	// TODO: assert(size <= INT_MAX && "Don't pass a size > INT_MAX to DG_vsnprintf()!"); ??
 	//       after all, we're supposed to return the number of bytes written.. as an int.
 
-	int ret = -1;
 	if(dst != NULL && size > 0)
 	{
 #if defined(_MSC_VER) && _MSC_VER >= 1400
@@ -710,11 +734,10 @@ DG_MISC_DEF int DG_vsnprintf(char *dst, size_t size, const char *format, va_list
 
 DG_MISC_DEF int DG_snprintf(char *dst, size_t size, const char *format, ...)
 {
-	DG_MISC_ASSERT(format, "Don't pass a NULL format into DG_snprintf()!");
-
 	int ret = 0;
-
 	va_list argptr;
+
+	DG_MISC_ASSERT(format, "Don't pass a NULL format into DG_snprintf()!");
 	va_start( argptr, format );
 
 	ret = DG_vsnprintf(dst, size, format, argptr);

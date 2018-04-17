@@ -1,4 +1,4 @@
-CXX = g++
+CC = gcc
 
 # default to Linux
 OSTYPE=linux
@@ -43,7 +43,7 @@ clean:
 	rm -f *.o
 
 gsmaster: $(OBJECTS)
-	$(CXX) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster
+	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster
 
-%.o: %.cpp
-	$(CXX) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@
+%.o: %.c
+	$(CC) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@

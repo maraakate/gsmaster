@@ -1,4 +1,4 @@
-CXX = g++
+CC = gcc
 
 # whether to use CURL for HTTP List DL
 USE_CURL=yes
@@ -30,14 +30,14 @@ SERVER = master.o \
 
 OBJECTS = $(SERVER)
 
-all: gsmaster
+all: gsmaster.exe
 
 clean:
 	rm -f *.o
 	rm gsmaster.exe
 
-gsmaster: $(OBJECTS)
-	$(CXX) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster
+gsmaster.exe: $(OBJECTS)
+	$(CC) $(OBJECTS) $(CURLLFLAGS) -lm $(WLFLAGS) -o gsmaster.exe
 
-%.o: %.cpp
-	$(CXX) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@
+%.o: %.c
+	$(CC) $(CFLAGS) $(WCFLAGS) $(CURLCFLAGS) -c $< -o $@

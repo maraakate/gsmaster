@@ -350,7 +350,7 @@ VOID AddToMessageLog(LPTSTR lpszMsg)
         // 
         hEventSource = RegisterEventSource(NULL, TEXT(SZSERVICENAME)); 
  
-        _stprintf(szMsg, TEXT("%s error: %d"), TEXT(SZSERVICENAME), dwErr); 
+        _stprintf(szMsg, TEXT("%s error: %lu"), TEXT(SZSERVICENAME), dwErr); 
         lpszStrings[0] = szMsg; 
         lpszStrings[1] = lpszMsg; 
  
@@ -608,7 +608,7 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize )
     else 
     { 
         lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  //remove cr and newline character 
-        _stprintf( lpszBuf, TEXT("%s (0x%x)"), lpszTemp, GetLastError() ); 
+        _stprintf( lpszBuf, TEXT("%s (0x%x)"), lpszTemp, (unsigned int)GetLastError() ); 
     } 
  
     if ( lpszTemp ) 
