@@ -1533,7 +1533,7 @@ void ParseCommandLine(int argc, char **argv)
 			}
 		}
 
-		if(!strnicmp((char*)argv[i] + 1, "?", 1) || !strnicmp((char *)argv[i] + 1, "help", 4))
+		if(!strnicmp(argv[i] + 1, "?", 1) || !strnicmp(argv[i] + 1, "help", 4))
 		{
 			printf("\nOptions:\n");
 
@@ -1592,73 +1592,54 @@ void ParseCommandLine(int argc, char **argv)
 			exit(0);
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"sendack", 7))
+		if(!strnicmp(argv[i] + 1, "sendack", 7))
 		{
 			bSendAck = true;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"quickvalidate", 13))
+		if(!strnicmp(argv[i] + 1, "quickvalidate", 13))
 		{
 			bValidate_newserver_immediately = true;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"validationrequired", 18))
+		if(!strnicmp(argv[i] + 1, "validationrequired", 18))
 		{
-#ifdef __DJGPP__
-			validation_required = atoi((char*)argv[i+1]);
-#else
-			validation_required = atoi((char*)argv[i]+20);
-#endif
+			validation_required = atoi(argv[i+1]);
 		}
 		
-		if(!strnicmp((char*)argv[i] + 1,"timestamp", 9))
+		if(!strnicmp(argv[i] + 1, "timestamp", 9))
 		{
-#ifdef __DJGPP__
-			timestamp = atoi((char*)argv[i+1]);
-#else
-			timestamp = atoi((char*)argv[i]+11);
-#endif
+			timestamp = atoi(argv[i+1]);
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"httpenable", 10))
+		if(!strnicmp(argv[i] + 1, "httpenable", 10))
 		{
 			bHttpEnable = true;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"rconpassword", 12))
+		if(!strnicmp(argv[i] + 1, "rconpassword", 12))
 		{
-#ifdef __DJGPP__
-			DG_strlcpy(rconPassword, (char*)argv[i]+14, sizeof(rconPassword));
-#else
-			DG_strlcpy(rconPassword, (char*)argv[i+1], sizeof(rconPassword));
-#endif
+			DG_strlcpy(rconPassword, argv[i+1], sizeof(rconPassword));
 			printf("[I] rcon password set to %s\n", rconPassword);
 		}
 
-		if(!strnicmp((char*)argv[i] + 1, "heartbeatinterval", 17))
+		if(!strnicmp(argv[i] + 1, "heartbeatinterval", 17))
 		{
-#ifdef __DJGPP__
-			heartbeatInterval = atol((char*)argv[i+1]);
-#else
-			heartbeatInterval = atol((char*)argv[i]+19);
-#endif
+			heartbeatInterval = atol(argv[i+1]);
 			if(heartbeatInterval < 1)
 			{
 				printf("[W] Heartbeat interval less than one minute!  Setting to one minute.\n");
 				heartbeatInterval = 60;
 			}
 			else
+			{
 				heartbeatInterval = heartbeatInterval * 60;
+			}
 		}
 
-		if(!strnicmp((char*)argv[i] + 1, "minimumheartbeats", 17))
+		if(!strnicmp(argv[i] + 1, "minimumheartbeats", 17))
 		{
-#ifdef __DJGPP__
-			minimumHeartbeats = atoi((char*)argv[i+1]);
-#else
-			minimumHeartbeats = atoi((char*)argv[i]+19);
-#endif
-
+			minimumHeartbeats = atoi(argv[i+1]);
 			if(minimumHeartbeats < 1)
 			{
 				printf("[W] Minimum heartbeat less than one!  Setting to one heartbeat required.\n");
@@ -1666,70 +1647,49 @@ void ParseCommandLine(int argc, char **argv)
 			}
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"ip", 2))
+		if(!strnicmp(argv[i] + 1, "ip", 2))
 		{
 			//bind_ip, a specific host ip if desired
-#ifdef __DJGPP__
-			DG_strlcpy(bind_ip, (char*)argv[i+1], sizeof(bind_ip));
-#else
-			DG_strlcpy(bind_ip, (char*)argv[i] + 4, sizeof(bind_ip));
-#endif
+			DG_strlcpy(bind_ip, argv[i+1], sizeof(bind_ip));
 			SetQ2MasterRegKey(REGKEY_BIND_IP, bind_ip);
 		}
 		
-		if(!strnicmp((char*)argv[i] + 1,"port", 4))
+		if(!strnicmp(argv[i] + 1, "port", 4))
 		{
 			//bind_port, if other than default port
-#ifdef __DJGPP__
-			DG_strlcpy(bind_port, (char*)argv[i] + 6, sizeof(bind_port));
-#else
-			DG_strlcpy(bind_port, (char*)argv[i+1], sizeof(bind_port));
-#endif
+			DG_strlcpy(bind_port, argv[i+1], sizeof(bind_port));
 			SetQ2MasterRegKey(REGKEY_BIND_PORT, bind_port);
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"tcpport", 7))
+		if(!strnicmp(argv[i] + 1, "tcpport", 7))
 		{
 			//bind_port_tcp, if other than default TCP port
-#ifdef __DJGPP__
-			DG_strlcpy(bind_port_tcp, (char*)argv[i+1], sizeof(bind_port_tcp));
-#else
-			DG_strlcpy(bind_port_tcp, (char*)argv[i] + 9, sizeof(bind_port_tcp));
-#endif
+			DG_strlcpy(bind_port_tcp, argv[i+1], sizeof(bind_port_tcp));
 			SetQ2MasterRegKey(REGKEY_BIND_PORT_TCP, bind_port_tcp);
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"serverlist", 10))
+		if(!strnicmp(argv[i] + 1, "serverlist", 10))
 		{
-#ifdef __DJGPP__
-			DG_strlcpy(serverlist_filename, (char *)argv[i+1], sizeof(serverlist_filename));
-#else
-			DG_strlcpy(serverlist_filename, (char *)argv[i] + 12, sizeof(serverlist_filename));
-#endif
+			DG_strlcpy(serverlist_filename, argv[i+1], sizeof(serverlist_filename));
+			printf("Using serverlist: %s\n", serverlist_filename);
 			load_Serverlist = 1;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"masterlist", 10))
+		if(!strnicmp(argv[i] + 1, "masterlist", 10))
 		{
-#ifdef __DJGPP__
-			DG_strlcpy(masterserverlist_filename, (char *)argv[i+1], sizeof(masterserverlist_filename));
-#else
-			DG_strlcpy(masterserverlist_filename, (char *)argv[i] + 12, sizeof(masterserverlist_filename));
-#endif
+			DG_strlcpy(masterserverlist_filename, argv[i+1], sizeof(masterserverlist_filename));
+			printf("Using masterlist: %s\n", masterserverlist_filename);
 			load_MasterServerlist = 1;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"motd", 4)) /* FS: Added motd.txt support */
+		if(!strnicmp(argv[i] + 1, "motd", 4)) /* FS: Added motd.txt support */
 		{
 			bMotd = true;
 		}
 
-		if(!strnicmp((char*)argv[i] + 1,"logtcp", 6)) /* FS: Write out successful GameSpy TCP requests */
+		if(!strnicmp(argv[i] + 1, "logtcp", 6)) /* FS: Write out successful GameSpy TCP requests */
 		{
-#ifdef __DJGPP__
-			DG_strlcpy(serverlist_filename, LOGTCP_DEFAULTNAME, sizeof(serverlist_filename));
-#else
-			DG_strlcpy(logtcp_filename, (char *)argv[i] + 8, sizeof(logtcp_filename));
+			DG_strlcpy(logtcp_filename, argv[i+1], sizeof(logtcp_filename));
 			if(!DG_strlen(logtcp_filename) || logtcp_filename[0] == '-')
 			{
 				int logStrlen = DG_strlen(logtcp_filename);
@@ -1740,7 +1700,6 @@ void ParseCommandLine(int argc, char **argv)
 			{
 				printf("Logging to %s\n", logtcp_filename);
 			}
-#endif
 			bLogTCP = true;
 		}
 
