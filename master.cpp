@@ -796,7 +796,8 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	validateString[validateStringLen] = '\0';
 
-	sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
+	if (stricmp(server->hostnameIp, "maraakate.org") && stricmp(server->hostnameIp, "172.86.181.38")) /* FS: FIXME: maraakate.org hack */
+		sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
 }
 
 //
@@ -832,6 +833,12 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		addr.sin_family = AF_INET;
 		addr.sin_port = server->port;
 		memset (&addr.sin_zero, 0, sizeof(addr.sin_zero));
+
+		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38")) /* FS: FIXME: maraakate.org hack */
+		{
+			myserver->shutdown_issued = 0;
+			return;
+		}
 
 		//hack, server will be dropped in next minute IF it doesn't respond to our ping
 		myserver->shutdown_issued = 1;
@@ -951,10 +958,8 @@ static void RunFrame (void)
 
 				validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-				sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends an Out-of-Band status */
-
 				/* FS: FIXME: maraakate.org hack */
-				if (!stricmp(server->hostnameIp, "maraakate.org"))
+				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38"))
 				{
 					Con_DPrintf("[I] Naraakate.org port clashing hack.\n");
 					server->shutdown_issued = 0;
@@ -963,7 +968,11 @@ static void RunFrame (void)
 					server->last_heartbeat = curtime;
 					server->heartbeats++;
 					server->validated = 1;
+					msleep(1);
+					continue;
 				}
+
+				sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends an Out-of-Band status */
 				msleep(1);
 			}
 		}
@@ -1272,6 +1281,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	char *cmdPtr = NULL;
 	int statechanged = FALSE;
 	struct in_addr addr; /* FS: FIXME: naraakate.org hack */
+	bool bMaraakateOrgHack = FALSE;
 
 	if(!data || data[0] == '\0')
 	{
@@ -1317,6 +1327,8 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 		from->sin_addr.s_addr = addr.s_addr;
+		bMaraakateOrgHack = true;
+		Con_DPrintf("[I] Maraakate.org intercept hack\n");
 	}
 
 	//walk through known servers
@@ -1370,11 +1382,14 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 			validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-			sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy uses the \status\ data for collection in a database so people can see the current stats without having to really ping the server. */
-
-			if(bSendAck) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
+			if (!bMaraakateOrgHack) /* FS: FIXME: maraakate.org hack */
 			{
-				sendto (listener, OOB_SEQ"ack", 7, 0, (struct sockaddr *)&addr, sizeof(addr));
+				sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy uses the \status\ data for collection in a database so people can see the current stats without having to really ping the server. */
+
+				if(bSendAck) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
+				{
+					sendto (listener, OOB_SEQ"ack", 7, 0, (struct sockaddr *)&addr, sizeof(addr));
+				}
 			}
 
 			if(statechanged)
