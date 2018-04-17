@@ -19,7 +19,7 @@ CFLAGS +=-Wall -Werror
 
 WCFLAGS =
 ifeq ($(OSTYPE), linux)
-WLFLAGS = -ldl
+WLFLAGS = -ldl -lrt
 endif
 
 ifeq ($(USE_CURL),yes)
