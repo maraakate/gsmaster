@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#if defined(_MSC_VER) && (_MSC_VER < 1400)
+	typedef unsigned int uintptr_t;
+#endif
 #include "dg_misc.h" /* FS: Caedes special safe string stuff */
 #include "curl_dl.h"
 

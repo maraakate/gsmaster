@@ -44,9 +44,6 @@
 #define __DG_MISC_H__
 
 #include <stdarg.h>
-#if defined(_MSC_VER) && _MSC_VER < 1400
-	typedef unsigned int uintptr_t;
-#endif
 
 // this allows you to prepend stuff to function signatures, e.g. "static"
 #ifndef DG_MISC_DEF

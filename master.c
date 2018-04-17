@@ -279,7 +279,7 @@ static void Log_Sucessful_TCP_Connections(char *logbuffer)
 	fclose(f);
 }
 
-SOCKET UDP_OpenSocket (int port)
+SOCKET UDP_OpenSocket (unsigned short port)
 {
 	SOCKET newsocket;
 	struct sockaddr_in address;
@@ -1918,7 +1918,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 		return;
 	}
 
-	if((motdSocket = UDP_OpenSocket(27905)) == INVALID_SOCKET)
+	if((motdSocket = UDP_OpenSocket(21005)) == INVALID_SOCKET)
 	{
 		return;
 	}
