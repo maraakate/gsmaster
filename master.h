@@ -7,7 +7,7 @@
 void SetQ2MasterRegKey(char* name, char *value);
 void GetQ2MasterRegKey(char* name, char *value);
 typedef int socklen_t;
-#define selectsocket select
+#define selectsocket(x, y, z, a, b) select((int)x, y, z, a, b) /* FS: nfds is fake on Windows.  Cast it to int so x64 VS2005 shuts up */
 
 #else
 
@@ -99,9 +99,9 @@ struct server_s
 	unsigned long	last_heartbeat;
 	unsigned long	last_ping;
 	unsigned char	shutdown_issued;
-	int		validated;
+	bool		validated;
 	char	gamename[MAX_GAMENAME_LEN];
-	char	challengeKey[64]; // FS: For gamespy encode type 0 validation
+	char	challengeKey[64]; /* FS: Needed for GameSpy encode type 0 validation */
 	char	hostnameIp[MAX_DNS_NAMELEN+1];
 };
 

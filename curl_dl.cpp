@@ -41,7 +41,7 @@ static int curl_init_error;
 static CURL *easy_handle;
 static CURLM *multi_handle;
 
-#define MAX_URLLENGTH	4000 // FS: See http://boutell.com/newfaq/misc/urllength.html.  Apache is 4000 max.  This is pretty damn long for a URL.
+#define MAX_URLLENGTH	4000 /* FS: See http://boutell.com/newfaq/misc/urllength.html.  Apache is 4000 max. */
 
 FILE *download;
 char name[MAX_PATH];
@@ -139,7 +139,7 @@ void CURL_HTTP_Update (void)
 
 			if ( (response_code == HTTP_OK || response_code == HTTP_REST))
 			{
-				printf ("[I] HTTP Download of %s completed\n", name); // FS: Tell me when it's done
+				printf ("[I] HTTP Download of %s completed\n", name);
 
 				if(download)
 				{

@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define DG_MISC_IMPLEMENTATION // FS: Caedes special string safe stuff
+#define DG_MISC_IMPLEMENTATION /* FS: Caedes special string safe stuff */
 #include "dk_essentials.h"
 
 void Com_sprintf( char *dest, int size, const char *fmt, ... )
@@ -48,7 +48,7 @@ char *Con_Timestamp (char *msg)
 
 	utc = time (NULL);
 	local = localtime (&utc);
-	if (Timestamp > 1)
+	if (timestamp > 1)
 		timefmt = "[%m/%d/%y @ %H:%M:%S %p] ";
 	else
 		timefmt = "[%m/%d/%y @ %I:%M:%S %p] ";
@@ -63,7 +63,7 @@ void Con_DPrintf (const char *fmt, ...)
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 
-	if (!Debug)	// don't confuse non-developers with techie stuff...
+	if (!debug)	// don't confuse non-developers with techie stuff...
 		return;
 
 	va_start (argptr,fmt);
@@ -71,13 +71,13 @@ void Con_DPrintf (const char *fmt, ...)
 	DK_vsnprintf(msg, sizeof(msg), fmt, argptr);	// Knightmare 10/28/12- buffer-safe version
 	va_end (argptr);
 
-	if (Timestamp)
+	if (timestamp)
 		printf("%s", Con_Timestamp(msg));
 	else
 		printf("%s", msg);
 }
 
-// FS: From FreeBSD
+/* FS: From FreeBSD */
 char *DK_strtok_r(char *s, const char *delim, char **last)
 {
 	char *spanp, *tok;
@@ -123,7 +123,7 @@ cont:
 	/* NOTREACHED */
 }
 
-// FS: From Quake 2
+/* FS: From Quake 2 */
 char *Info_ValueForKey(const char *s, const char *key)
 {
 	char	pkey[MAX_INFO_STRING];
@@ -172,7 +172,7 @@ char *Info_ValueForKey(const char *s, const char *key)
 	}
 }
 
-void Gamespy_Create_Challenge_Key(char *s, const int len)
+void GameSpy_Create_Challenge_Key(char *s, const int len)
 {
 	int i;
 	static const char challengeKey[] =
@@ -185,10 +185,10 @@ void Gamespy_Create_Challenge_Key(char *s, const int len)
 		s[i] = challengeKey[rand() % (sizeof(challengeKey) - 1)];
 	}
 
-	s[len] = 0;
+	s[len] = '\0';
 }
 
-// FS: Some compilers might not have this, from the solaris system file in Q2
+/* FS: Some compilers might not have this, from the solaris system file in Quake 2 */
 char *DK_strlwr (char *s)
 {
 	char* ret = s;
@@ -201,7 +201,7 @@ char *DK_strlwr (char *s)
 	return ret;
 }
 
-// FS: From Quake 2's Cbuf_Execute
+/* FS: From Quake 2's Cbuf_Execute */
 void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp)
 {
 	unsigned int		i;

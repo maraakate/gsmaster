@@ -43,7 +43,7 @@ game_table_t gameTable[] =
 	{NULL, NULL}
 };
 
-const char *Gamespy_Get_Game_SecKey (char *gamename)
+const char *GameSpy_Get_Game_SecKey (char *gamename)
 {
 	int x = 0;
 
@@ -66,7 +66,7 @@ const char *Gamespy_Get_Game_SecKey (char *gamename)
 	return NULL;
 }
 
-unsigned short Gamespy_Get_MOTD_Port (char *gamename)
+unsigned short GameSpy_Get_MOTD_Port (char *gamename)
 {
 	int x = 0;
 
@@ -75,7 +75,7 @@ unsigned short Gamespy_Get_MOTD_Port (char *gamename)
 		return 0;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly sin) stupidly send it partially uppercase */
+	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
 
 	while (gameTable[x].gamename != NULL)
 	{

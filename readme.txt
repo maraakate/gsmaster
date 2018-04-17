@@ -41,7 +41,7 @@ port scheme.
 ==========================
 3. Commands
 ==========================
- -sendack - by default gamespy doesn't not send this type of packet out.
+ -sendack - by default GameSpy doesn't not send this type of packet out.
             if you want to extend the courtesy of acknowleding the
             heartbeat then enable this setting.
 
@@ -67,7 +67,7 @@ port scheme.
                         sent before a server will be added to the list.
 
  -tcpport - xxxxx causes server to bind to a particular TCP port for the
-  gamespy list query from clients. Default is 28900.
+  GameSpy list query from clients. Default is 28900.
   If you depart from this you need to communicate this to your users somehow.
   This feature is included since this code could be modified to provide
   master services for other games.

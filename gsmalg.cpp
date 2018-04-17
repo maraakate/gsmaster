@@ -8,12 +8,12 @@ web:    aluigi.org
 INTRODUCTION
 ============
 With the name Gsmsalg I define the challenge-response algorithm needed
-to query the master servers that use the Gamespy "secure" protocol (like
+to query the master servers that use the GameSpy "secure" protocol (like
 master.gamespy.com for example).
 This algorithm is not only used for this type of query but also in other
-situations like the so called "Gamespy Firewall Probe Packet" and the
+situations like the so called "GameSpy Firewall Probe Packet" and the
 master server hearbeat that is the challenge string sent by the master
-servers of the games that use the Gamespy SDK when game servers want to
+servers of the games that use the GameSpy SDK when game servers want to
 be included in the online servers list (UDP port 27900).
 
 
@@ -31,12 +31,12 @@ The function needs 4 parameters:
            from the server.
 - key:     the gamekey or any other text string used as algorithm's
            key, usually it is the gamekey but "might" be another thing
-           in some cases. Each game has its unique Gamespy gamekey which
+           in some cases. Each game has its unique GameSpy gamekey which
            are available here:
            http://aluigi.org/papers/gslist.cfg
 - enctype: are supported 0 (plain-text used in old games, heartbeat
-           challenge respond, enctypeX and more), 1 (Gamespy3D) and 2
-           (old Gamespy Arcade or something else).
+           challenge respond, enctypeX and more), 1 (GameSpy3D) and 2
+           (old GameSpy Arcade or something else).
 
 The return value is a pointer to the destination buffer.
 
