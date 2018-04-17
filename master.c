@@ -27,7 +27,6 @@
 #include <winerror.h>
 #include <time.h>
 #include <process.h>
-#include <assert.h>
 #if defined(_MSC_VER) && _MSC_VER < 1400 /* FS: VS2005 Compatibility */
 #include <winwrap.h>
 #endif
@@ -440,7 +439,6 @@ int gsmaster_main (int argc, char **argv)
 	FD_SET (listener, &set);
 	
 	fromlen = (unsigned)sizeof(from);
-	memset (&servers, 0, sizeof(servers));
 	printf ("listening on %s:%s (UDP)\n", bind_ip, bind_port);
 	printf ("listening on %s:%s (TCP)\n", bind_ip, bind_port_tcp);
 	runmode = SRV_RUN; // set loop control
@@ -656,9 +654,8 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	server_t	*server = &servers;
 	int			preserved_heartbeats = 0;
 	struct sockaddr_in addr;
-	char validateString[MAX_GSPY_VAL];
+	char validateString[MAX_GSPY_VAL] = {0};
 	int validateStringLen = 0;
-	memset(validateString, 0, sizeof(validateString));
 
 	if(!gamename || (gamename[0] == 0))
 	{
@@ -709,10 +706,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 		}
 	}
 
-	server->next = (server_t *)malloc(sizeof(server_t));
-	assert(server->next != NULL); // malloc failed if server->next == NULL
-
-	// Note: printf implicitly calls malloc so this is likely to fail if we're really out of memory
+	server->next = (server_t *)calloc(1, sizeof(server_t));
 	if (server->next == NULL)
 	{
 		printf("Fatal Error: memory allocation failed in AddServer\n");
@@ -825,10 +819,9 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 	if (myserver)
 	{
 		struct sockaddr_in addr;
-		char validateString[MAX_GSPY_VAL];
+		char validateString[MAX_GSPY_VAL] = {0};
 		int validateStringLen = 0;
 
-		memset(validateString, 0, sizeof(validateString));
 		memcpy (&addr.sin_addr, &myserver->ip.sin_addr, sizeof(addr.sin_addr));
 		addr.sin_family = AF_INET;
 		addr.sin_port = server->port;
@@ -916,10 +909,9 @@ static void RunFrame (void)
 			if (curtime - server->last_ping >= heartbeatInterval)
 			{
 				struct sockaddr_in addr;
-				char validateString[MAX_GSPY_VAL];
+				char validateString[MAX_GSPY_VAL] = {0};
 				int validateStringLen = 0;
 
-				memset(validateString, 0, sizeof(validateString));
 				addr.sin_addr = Hostname_to_IP(&server->ip.sin_addr, server->hostnameIp); /* FS: Resolve hostname if it's from a serverlist file */
 				addr.sin_family = AF_INET;
 				addr.sin_port = server->port;
@@ -991,8 +983,8 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	char			*buff;
 	char			*udpheader;
 	server_t		*server = &servers;
-	unsigned long	servercount;
-	unsigned long	bufsize;
+	unsigned int	servercount;
+	unsigned int	bufsize;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1005,43 +997,34 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	if(!stricmp(gamename, "hexenworld"))
 	{
 		udpheadersize = sizeof(hw_reply_hdr) + 1;
-		udpheader = (char *)malloc(udpheadersize);
-		assert(udpheader != NULL);
-
+		udpheader = (char *)calloc(1, udpheadersize);
 		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memset(udpheader, 0, udpheadersize);
 		memcpy(udpheader, hw_reply_hdr, sizeof(hw_reply_hdr));
 	}
 	else if (!stricmp(gamename, "quakeworld"))
 	{
 		udpheadersize = sizeof(qw_reply_hdr) + 1;
-		udpheader = (char *)malloc(udpheadersize);
-		assert(udpheader != NULL);
-
+		udpheader = (char *)calloc(1, udpheadersize);
 		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memset(udpheader, 0, udpheadersize);
 		memcpy(udpheader, qw_reply_hdr, sizeof(qw_reply_hdr));
 	}
 	else if (!stricmp(gamename, "quake2"))
 	{
 		udpheadersize = sizeof(q2_reply_hdr) + 1;
-		udpheader = (char*)malloc(udpheadersize);
-		assert(udpheader != NULL);
-
+		udpheader = (char*)calloc(1, udpheadersize);
 		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memset(udpheader, 0, udpheadersize);
 		memcpy(udpheader, q2_reply_hdr, sizeof(q2_reply_hdr));
 	}
 	else
@@ -1052,8 +1035,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 
 	bufsize = (udpheadersize) + 6 * (numservers + 1); // n bytes for the reply header, 6 bytes for game server ip and port
 	buflen = 0;
-	buff = (char *)malloc (bufsize);
-
+	buff = (char *)calloc (1, bufsize);
 	if (!buff)
 	{
 		if(udpheader)
@@ -1064,8 +1046,6 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		Con_DPrintf("Fatal Error: memory allocation failed in SendServerListToClient\n");
 		return;
 	}
-
-	memset (buff, 0, bufsize);
 	memcpy (buff, udpheader, udpheadersize-1);	// n = length of the reply header
 	buflen += (udpheadersize-1);
 	servercount = 0;
@@ -1113,15 +1093,15 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
-static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, int basic)
+static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, bool uncompressed)
 {
 	int				buflen;
 	char			*buff;
 	char			*port;
 	char			*ip = NULL;
 	server_t		*server = &servers;
-	unsigned long	servercount;
-	unsigned long	bufsize;
+	unsigned int	servercount;
+	unsigned int	bufsize;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1135,15 +1115,14 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 	bufsize = 1 + 26 * (numservers + 1) + 6; // 1 byte for /, 26 bytes for ip:port/, 6 for final/
 	buflen = 0;
-	buff = (char *)malloc (bufsize);
+	buff = (char *)calloc(1, bufsize);
 	if (!buff)
 	{
 		printf("Fatal Error: memory allocation failed for buff in SendGameSpyListToClient\n");
 		return;
 	}
-	memset (buff, 0, bufsize);
 
-	port = (char *)malloc (bufsize);
+	port = (char *)calloc(1, bufsize);
 	if(!port)
 	{
 		if(buff)
@@ -1153,9 +1132,8 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 		printf("Fatal Error: memory allocation failed for port in SendGameSpyListToClient\n");
 		return;
 	}
-	memset (port, 0 , bufsize);
 
-	if (basic)
+	if (uncompressed)
 	{
 		memcpy (buff, listheader, 1);
 		buflen += 1;
@@ -1170,7 +1148,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 		{
 			ip = inet_ntoa(server->ip.sin_addr);
 
-			if (basic)
+			if (uncompressed)
 			{
 				memcpy (buff + buflen, "ip\\", 3); // 3
 				buflen += 3;
@@ -1193,7 +1171,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 		}
 	}
 
-	if(basic)
+	if(uncompressed)
 	{
 		memcpy(buff + buflen, finalstring, 6);
 		buflen += 6;
@@ -1340,10 +1318,9 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 		if (*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr && queryPort == htons(server->port))
 		{
 			struct sockaddr_in addr;
-			char validateString[MAX_GSPY_VAL];
+			char validateString[MAX_GSPY_VAL] = {0};
 			int validateStringLen = 0;
-			
-			memset(validateString, 0, sizeof(validateString));
+
 			memcpy (&addr.sin_addr, &server->ip.sin_addr, sizeof(addr.sin_addr));
 			addr.sin_family = AF_INET;
 			server->port = htons(queryPort);
@@ -1443,7 +1420,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, "quake2");
+			SendUDPServerListToClient(from, "quake2");
 			return;
 		}
 		else if(!strnicmp(data, OOB_SEQ"rcon", 8))
@@ -1474,7 +1451,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			htons(from->sin_port),
 			dglen);
 
-			SendUDPServerListToClient (from, "quake2");
+			SendUDPServerListToClient(from, "quake2");
 			return;
 		}
 		cmd +=1;
@@ -1947,9 +1924,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 	}
 
 	rewind(f);
-	fileBuffer = (char *)malloc(sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
-	assert(fileBuffer);
-
+	fileBuffer = (char *)calloc(1, sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
 	if(!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");
@@ -2008,7 +1983,7 @@ static void GameSpy_Parse_List_Request(char *clientName, char *querystring, SOCK
 	char *tokenPtr = NULL;
 	char seperators[] = "\\";
 	char logBuffer[2048];
-	int basic = 0;
+	bool uncompressed = false;
 
 	if(!querystring || !strstr(querystring, "\\list\\") || !strstr(querystring, "\\gamename\\"))
 	{
@@ -2027,8 +2002,8 @@ static void GameSpy_Parse_List_Request(char *clientName, char *querystring, SOCK
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\gamename\\ */
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\actual gamename\\ */
 
-		basic = 0;
-		Con_DPrintf("[I] Sending TCP list for %s\n", gamename);
+		uncompressed = false;
+		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
 	else /* FS: Older style that sends out "basic" style lists */
 	{
@@ -2042,8 +2017,8 @@ static void GameSpy_Parse_List_Request(char *clientName, char *querystring, SOCK
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\gamename\\ */
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\actual gamename\\ */
 
-		basic = 1;
-		Con_DPrintf("[I] Sending basic TCP list for %s\n", gamename);
+		uncompressed = true;
+		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
 	}
 
 	if (!gamename || gamename[0] == 0)
@@ -2065,7 +2040,7 @@ error:
 		Log_Sucessful_TCP_Connections(logBuffer);
 	}
 
-	SendGameSpyListToClient(socket, gamename, from, basic);
+	SendGameSpyListToClient(socket, gamename, from, uncompressed);
 }
 
 static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey)
@@ -2159,15 +2134,13 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	int retry = 0;
 	int sleepMs = 50;
 	int challengeBufferLen = 0;
-	char *challengeKey = (char *)malloc(7);
-	char *challengeBuffer = (char *)malloc(84);
+	char *challengeKey = (char *)calloc(1, sizeof(char)*7);
+	char *challengeBuffer = (char *)calloc(1, sizeof(char)*84);
 	char *enctypeKey = NULL;
 	char *clientName = NULL;
 
 	memset(incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset(incomingTcpList, 0, sizeof(incomingTcpList));
-	memset(challengeKey, 0, 7);
-	memset(challengeBuffer, 0, 84);
 	GameSpy_Create_Challenge_Key(challengeKey, 6);
 
 	if(Set_Non_Blocking_Socket(socket) == SOCKET_ERROR)
@@ -2381,8 +2354,7 @@ void Add_Servers_From_List(char *filename)
 	}
 
 	rewind(listFile);
-	fileBuffer = (char *)malloc(sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
-	assert(fileBuffer);
+	fileBuffer = (char *)calloc(1, sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
 	if(!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");
@@ -2529,9 +2501,8 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 static struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp)
 {
 	struct hostent *remoteHost;
-	struct in_addr addr;
+	struct in_addr addr = {0};
 
-	memset(&addr, 0, sizeof(addr));
 	remoteHost = gethostbyname(hostnameIp);
 
 	/* FS: Can't resolve.  Just default to the old IP previously retained so it can be removed later. */
@@ -2711,8 +2682,7 @@ static void Master_DL_List (char *filename)
 	}
 
 	rewind(listFile);
-	fileBuffer = (char *)malloc(sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
-	assert(fileBuffer);
+	fileBuffer = (char *)calloc(1, sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
 	if(!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");

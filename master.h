@@ -33,7 +33,6 @@ typedef int socklen_t;
 #include <netdb.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <assert.h>
 
 enum {FALSE, TRUE};
 
