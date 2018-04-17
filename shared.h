@@ -7,6 +7,7 @@
 #if defined(_MSC_VER) && (_MSC_VER < 1400)
 	typedef unsigned int uintptr_t;
 #endif
+#define DG_MISC_NO_GNU_SOURCE
 #include "dg_misc.h" /* FS: Caedes special safe string stuff */
 #include "curl_dl.h"
 

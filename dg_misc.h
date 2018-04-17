@@ -463,7 +463,7 @@ DG_MISC_DEF void* DG_memmem(const void* haystack, size_t haystacklen,
 #if defined(__GLIBC__) && !defined(DG_MISC_NO_GNU_SOURCE)
 	// glibc has a very optimized version of this, use that instead
 	return memmem(haystack, haystacklen, needle, needlelen);
-#else
+#endif
 	h = (unsigned char*)haystack;
 	n = (unsigned char*)needle;
 
@@ -494,8 +494,6 @@ DG_MISC_DEF void* DG_memmem(const void* haystack, size_t haystacklen,
 	}
 
 	return NULL; // not found
-
-#endif // __GLIBC__
 }
 
 
@@ -540,7 +538,7 @@ DG_MISC_DEF char* DG_strtok_r(char* str, const char* delim, char** context)
 	DG_MISC_ASSERT(context && delim, "Don't call DG_strtok_r() with delim or context set to NULL!");
 	DG_MISC_ASSERT(str || *context, "Don't call DG_strtok_r() with *context and str both set to NULL!");
 
-#if !defined(DG_MISC_NO_GNU_SOURCE) && !defined(_WIN32)
+#if !defined(_WIN32)
 
 	// I think every interesting platform except for Windows supports strtok_r
 	// (if not, add it above with "&& !defined(_OTHER_CRAPPY_PLATFORM)")
@@ -595,7 +593,7 @@ DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 	// apple also seems to have optimized ASM code, see
 	// http://www.opensource.apple.com/source/Libc/Libc-1044.1.2/x86_64/string/
 	return strnlen(s, n);
-#else
+#endif
 	// at least microsoft and freebsd seem to use a naive strnlen() without
 	// any tricks which is usually slower than this
 
@@ -660,8 +658,6 @@ DG_MISC_DEF size_t DG_strnlen(const char* s, size_t n)
 	}
 
 	return n;
-
-#endif // __GLIBC__
 }
 
 #ifdef _WIN32
