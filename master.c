@@ -52,8 +52,8 @@ static int runmode;	// server loop control
 
 static server_t servers;
 
-struct sockaddr_in listenaddress;
-struct sockaddr_in listenaddressTCP;
+static struct sockaddr_in listenaddress;
+static struct sockaddr_in listenaddressTCP;
 static SOCKET out;
 static SOCKET listener;
 static SOCKET listenerTCP;
@@ -385,8 +385,6 @@ int gsmaster_main (int argc, char **argv)
 	listener = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	listenerTCP = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	out = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	memset (&listenaddress, 0, sizeof(listenaddress));
-	memset (&listenaddressTCP, 0, sizeof(listenaddressTCP));
 
 	// only in Windows, null def in Linux
 	GetGSMasterRegKey(REGKEY_BIND_IP, bind_ip);
