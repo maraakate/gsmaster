@@ -318,7 +318,9 @@ DG_MISC_DEF const char* DG_GetExecutableDir(void)
 	static char exeDir[PATH_MAX] = {0};
 	const char* exePath = NULL;
 	char* lastSlash = NULL;
+#ifdef _WIN32
 	char* lastBackSlash = NULL;
+#endif
 
 	if(exeDir[0] != '\0') return exeDir;
 
@@ -346,7 +348,9 @@ DG_MISC_DEF const char* DG_GetExecutableFilename(void)
 	static const char* exeName = "";
 	const char* exePath = NULL;
 	const char* lastSlash = NULL;
+#ifdef _WIN32
 	const char* lastBackSlash = NULL;
+#endif
 
 	if(exeName[0] != '\0') return exeName;
 
@@ -533,7 +537,9 @@ DG_MISC_DEF void* DG_memrchr(const void* buf, unsigned char c, size_t buflen)
  */
 DG_MISC_DEF char* DG_strtok_r(char* str, const char* delim, char** context)
 {
+#ifdef _WIN32
 	char* ret;
+#endif
 	DG_MISC_ASSERT(context && delim, "Don't call DG_strtok_r() with delim or context set to NULL!");
 	DG_MISC_ASSERT(str || *context, "Don't call DG_strtok_r() with *context and str both set to NULL!");
 

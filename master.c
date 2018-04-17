@@ -448,15 +448,15 @@ int gsmaster_main (int argc, char **argv)
 #ifndef WIN32
 	#ifndef __DJGPP__
 	// in Linux or BSD we fork a daemon
-	if (!Debug) {			// ...but not if debug mode
-		if (daemon(0,0) < 0) {	
-			printf("Forking error, running as console, error number was: %d\n", errno);
-			Debug = 1;
-		}
+	// ...but not if debug mode
+	if (!debug && (daemon(0,0) < 0))
+	{
+		printf("Forking error, running as console, error number was: %d\n", errno);
+		debug = 1;
 	}
 	#endif // __DJGPP__
 	
-	if (!Debug) 
+	if (!debug)
 	{
 #ifndef __DJGPP__
 		signal(SIGCHLD, SIG_IGN); /* ignore child */
