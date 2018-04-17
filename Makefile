@@ -15,7 +15,7 @@ else
 CFLAGS = -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-Wall -Werror
+CFLAGS +=-Wall -Werror -fwrapv
 
 WCFLAGS =
 ifeq ($(OSTYPE), linux)

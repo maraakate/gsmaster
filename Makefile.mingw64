@@ -9,7 +9,7 @@ else
 CFLAGS = -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-m64 -Wall -Werror
+CFLAGS +=-m64 -Wall -Werror -fwrapv
 
 WCFLAGS =
 WLFLAGS = -m64 -lws2_32

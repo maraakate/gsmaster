@@ -9,7 +9,7 @@ else
 CFLAGS = -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-Wall -Werror
+CFLAGS +=-Wall -Werror -fwrapv
 
 WCFLAGS = -Idos/watt32/inc
 WLFLAGS = -Ldos/watt32/lib -lwatt
