@@ -98,7 +98,7 @@ static const char finalstring[] = "final\\";
 static const char finalstringerror[] = "\\final\\";
 static const char statusstring[] = "\\status\\secure\\";
 static const char quakestatusstring[] = "status"; /* FS: Q1 and QW use this */
-static const char quake1string[] = "\x80\x00\x00\x0C\x02QUAKE\x00\x03"; /* FS: Raw data that's sent down for a "QUAKE" query string */
+static const char quake1string[] = "\x80\x00\x00\x0C\x02QUAKE\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string */
 static const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
 
@@ -768,18 +768,18 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	}
 	else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 	{
-		memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
+		memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
 	}
 	else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 	{
-		memcpy(validateString, quake1string, sizeof(validateString)-1);
+		memcpy(validateString, quake1string, sizeof(quake1string));
 	}
 	else
 	{
 		Com_sprintf(validateString, sizeof(validateString), "%s%s", statusstring, server->challengeKey);
 	}
 	if(!stricmp(server->gamename, "quake1"))
-		validateStringLen = sizeof(quake1string)-1;
+		validateStringLen = sizeof(quake1string);
 	else
 		validateStringLen = DG_strlen(validateString);
 
@@ -841,11 +841,11 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		}
 		else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 		{
-			memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
+			memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
 		}
 		else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 		{
-			memcpy(validateString, quake1string, sizeof(validateString)-1);
+			memcpy(validateString, quake1string, sizeof(quake1string));
 		}
 		else
 		{
@@ -853,7 +853,7 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		}
 
 		if(!stricmp(server->gamename, "quake1"))
-			validateStringLen = sizeof(quake1string)-1;
+			validateStringLen = sizeof(quake1string);
 		else
 			validateStringLen = DG_strlen(validateString);
 
@@ -921,11 +921,11 @@ static void RunFrame (void)
 				}
 				else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 				{
-					memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
+					memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
 				}
 				else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 				{
-					memcpy(validateString, quake1string, sizeof(validateString)-1);
+					memcpy(validateString, quake1string, sizeof(quake1string));
 				}
 				else
 				{
@@ -933,7 +933,7 @@ static void RunFrame (void)
 				}
 
 				if(!stricmp(server->gamename, "quake1"))
-					validateStringLen = sizeof(quake1string)-1;
+					validateStringLen = sizeof(quake1string);
 				else
 					validateStringLen = DG_strlen(validateString);
 
@@ -1327,11 +1327,11 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			}
 			else if(!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 			{
-				memcpy(validateString, hexenworldstatusstring, sizeof(validateString)-1);
+				memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
 			}
 			else if(!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 			{
-				memcpy(validateString, quake1string, sizeof(validateString)-1);
+				memcpy(validateString, quake1string, sizeof(quake1string));
 			}
 			else
 			{
@@ -1339,7 +1339,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			}
 
 			if(!stricmp(server->gamename, "quake1"))
-				validateStringLen = sizeof(quake1string)-1;
+				validateStringLen = sizeof(quake1string);
 			else
 				validateStringLen = DG_strlen(validateString);
 
