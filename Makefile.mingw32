@@ -6,7 +6,7 @@ USE_CURL=yes
 ifeq ($(DEBUG),1)
 CFLAGS = -g -O0
 else
-CFLAGS = -O2 -fomit-frame-pointer
+CFLAGS = -DNDEBUG -O2 -fomit-frame-pointer
 endif
 
 CFLAGS +=-m32 -Wall -Werror -fwrapv
