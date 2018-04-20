@@ -43,6 +43,7 @@ enum {FALSE, TRUE};
 
 #ifdef __DJGPP__
 #define selectsocket select_s
+typedef int socklen_t;
 extern int	_watt_do_exit;	/* in sock_ini.h, but not in public headers. */
 #else
 #define selectsocket select

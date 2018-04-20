@@ -9,7 +9,7 @@ else
 CFLAGS = -DNDEBUG -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-Wall -Werror -fwrapv
+CFLAGS +=-Wall -Werror -fwrapv -fno-strict-aliasing
 
 WCFLAGS = -Idos/watt32/inc
 WLFLAGS = -Ldos/watt32/lib -lwatt

@@ -15,7 +15,7 @@ else
 CFLAGS = -DNDEBUG -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-Wall -Werror -fwrapv
+CFLAGS +=-Wall -Werror -fwrapv -fno-strict-aliasing
 
 WCFLAGS =
 ifeq ($(OSTYPE), linux)

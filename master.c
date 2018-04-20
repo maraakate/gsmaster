@@ -326,6 +326,7 @@ static void NET_Init (void)
 	}
 #elif __DJGPP__
 	int i;
+	int err;
 
 /*	dbug_init();*/
 
