@@ -150,7 +150,7 @@ static const unsigned char q2_reply_hdr[] =
 		{ 255, 255, 255, 255,
 		  's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey);
+static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey, int enctype);
 static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from);
 static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from);
 static void Check_Port_Boundaries (void);
@@ -1309,7 +1309,7 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 			}
 			else
 			{
-				server->validated = GameSpy_Challenge_Cross_Check(server->challengeKey, dataPacket, 1);
+				server->validated = GameSpy_Challenge_Cross_Check(server->challengeKey, dataPacket, 1, GAMESPY_ENCTYPE0);
 			}
 
 			server->queued_pings = 0;
@@ -2149,7 +2149,7 @@ error:
 	SendGameSpyListToClient(socket, gamename, from, uncompressed);
 }
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey)
+static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey, int enctype)
 {
 	char *ptr = NULL;
 	char validateKey[MAX_INFO_STRING];
@@ -2222,7 +2222,7 @@ static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validateP
 		return false;
 	}
 
-	decodedKey = (char *)gsseckey(NULL, (unsigned char*)challengeKey, (unsigned char*)gameSecKey, 0);
+	decodedKey = (char *)gsseckey(NULL, (unsigned char*)challengeKey, (unsigned char*)gameSecKey, enctype);
 	if(decodedKey && decodedKey[0] != '\0' && !strcmp(decodedKey, validateKey))
 	{
 		Con_DPrintf("[I] Validation passed!\n");
@@ -2326,7 +2326,7 @@ retryIncomingTcpValidate:
 	}
 
 	/* FS: Not supported or junk data, bye. */
-	if(!GameSpy_Challenge_Cross_Check(challengeBuffer, incomingTcpValidate, 0))
+	if(!GameSpy_Challenge_Cross_Check(challengeBuffer, incomingTcpValidate, 0, encodetype))
 	{
 		goto closeTcpSocket;
 	}

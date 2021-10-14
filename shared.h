@@ -48,6 +48,10 @@ typedef enum {false, true} bool;
 
 #define MAX_QUERY_SOCKETS 30
 
+#define GAMESPY_ENCTYPE0 0
+#define GAMESPY_ENCTYPE1 1
+#define GAMESPY_ENCTYPE2 2
+
 /* FS: From HoT: For ioctl sockets */
 #ifdef __DJGPP__
 #define	IOCTLARG_T	(char*)
