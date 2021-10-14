@@ -85,6 +85,8 @@ void signal_handler(int sig);
 #define A2A_PING			'k'
 #define	S2M_SHUTDOWN		'C'
 
+#define MAX_GSPY_BUFF_SIZE 1022
+
 typedef struct server_s server_t;
 
 typedef enum {waiting, inuse} pingstate;

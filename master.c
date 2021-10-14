@@ -27,9 +27,12 @@
 #include <winerror.h>
 #include <time.h>
 #include <process.h>
+#include <direct.h>
 #if defined(_MSC_VER) && _MSC_VER < 1400 /* FS: VS2005 Compatibility */
 #include <winwrap.h>
 #endif
+
+#include <errno.h>
 
 #include "service.h"
 
@@ -98,8 +101,8 @@ static const char finalstring[] = "final\\";
 static const char finalstringerror[] = "\\final\\";
 static const char statusstring[] = "\\status\\secure\\";
 static const char quakestatusstring[] = "status"; /* FS: Q1 and QW use this */
-static const char quake1string[] = "\x80\x00\x00\x0C\x02QUAKE\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string */
-static const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xffstatus"; /* FS: HW wants an extra 0xff */
+static const char quake1string[] = "\x80\x00\x00\x0C\x02" "QUAKE" "\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string */
+static const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xff" "status"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
 
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
@@ -786,7 +789,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	validateString[validateStringLen] = '\0';
 
-	if (stricmp(server->hostnameIp, "maraakate.org") && stricmp(server->hostnameIp, "172.86.181.38")) /* FS: FIXME: maraakate.org hack */
+	if (stricmp(server->hostnameIp, "maraakate.org") && stricmp(server->hostnameIp, "172.86.181.38") && stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
 		sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
 }
 
@@ -823,7 +826,7 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		addr.sin_port = server->port;
 		memset (&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
-		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38")) /* FS: FIXME: maraakate.org hack */
+		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38") || !stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
 		{
 			myserver->shutdown_issued = 0;
 			return;
@@ -941,7 +944,7 @@ static void RunFrame (void)
 				validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
 				/* FS: FIXME: maraakate.org hack */
-				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38"))
+				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38") || !stricmp(server->hostnameIp, "127.0.0.1"))
 				{
 					Con_DPrintf("[I] Naraakate.org port clashing hack.\n");
 					server->shutdown_issued = 0;
@@ -968,13 +971,13 @@ static void RunFrame (void)
 //
 static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gamename)
 {
-	int				buflen;
-	int				udpheadersize;
-	char			*buff;
-	char			*udpheader;
+	int				buflen = 0;
+	int				udpheadersize = 0;
+	char			*buff = NULL;
+	char			*udpheader = NULL;
 	server_t		*server = &servers;
-	unsigned int	servercount;
-	unsigned int	bufsize;
+	unsigned int	servercount = 0;
+	unsigned int	bufsize = 0;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1006,16 +1009,16 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		}
 		memcpy(udpheader, qw_reply_hdr, sizeof(qw_reply_hdr));
 	}
-	else if (!stricmp(gamename, "quake2"))
+	else if (!stricmp(gamename, "quake2") || !stricmp(gamename, "daikatana"))
 	{
-		udpheadersize = sizeof(q2_reply_hdr) + 1;
+		udpheadersize = sizeof(q2_reply_hdr);
 		udpheader = (char*)calloc(1, udpheadersize);
 		if(!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memcpy(udpheader, q2_reply_hdr, sizeof(q2_reply_hdr));
+		memcpy(udpheader, q2_reply_hdr, sizeof(udpheadersize));
 	}
 	else
 	{
@@ -1036,15 +1039,15 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		Con_DPrintf("Fatal Error: memory allocation failed in SendServerListToClient\n");
 		return;
 	}
-	memcpy (buff, udpheader, udpheadersize-1);	// n = length of the reply header
-	buflen += (udpheadersize-1);
+	memcpy (buff, udpheader, udpheadersize);	// n = length of the reply header
+	buflen += (udpheadersize);
 	servercount = 0;
 
 	while (server->next)
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename))
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
 		{
 			memcpy (buff + buflen, &server->ip.sin_addr, 4);
 			buflen += 4;
@@ -1080,18 +1083,88 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	}
 }
 
+#if 0 /* FS: TODO: Get with OpenSpy devs or Aluigi to get EncType 1 working with GS3D :/ */
+#define CRYPTCHAL_LEN 10
+#define SERVCHAL_LEN 25
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+
+void BufferWriteByte(uint8_t **buffer, uint32_t *len, uint8_t value) {
+	**buffer = value;
+	*len += sizeof(uint8_t);
+	*buffer += sizeof(uint8_t);
+}
+
+void BufferWriteData(uint8_t **buffer, uint32_t *len, uint8_t *data, uint32_t writelen) {
+	memcpy(*buffer,data,writelen);
+	*len += writelen;
+	*buffer += writelen;
+}
+
+uint32_t headerLen;
+unsigned char encxkeyb[261];
+
+char challenge[11];
+#include "enctypex.h"
+
+void gen_random(char *s, const int len) {
+	int i;
+//	srand((unsigned int)time(NULL));
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    for (i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    s[len] = 0;
+}
+
+static void SetupGamespy2CryptHeader (uint8_t **dst, uint32_t *len)
+{
+//	memset(&options->cryptkey,0,sizeof(options->cryptkey));
+//	srand(time(NULL));
+	uint32_t cryptlen = CRYPTCHAL_LEN;
+	uint8_t cryptchal[CRYPTCHAL_LEN] = { 0 };
+	uint32_t servchallen = SERVCHAL_LEN;
+	uint8_t servchal[SERVCHAL_LEN] = { 0 };
+	uint16_t *backendflags = (uint16_t *)(&cryptchal);
+	uint32_t i;
+
+	headerLen = (servchallen+cryptlen)+(sizeof(uint8_t)*2);
+
+	for(i=0;i<cryptlen;i++) {
+		cryptchal[i] = (uint8_t)rand();
+	}
+
+	for(i=0;i<servchallen;i++) {
+		servchal[i] = (uint8_t)rand();
+	}
+
+	BufferWriteByte(dst,len,cryptlen^0xEC);
+	BufferWriteData(dst, len, (uint8_t *)&cryptchal, cryptlen);
+	BufferWriteByte(dst,len,servchallen^0xEA);
+	BufferWriteData(dst, len, (uint8_t *)&servchal, servchallen);
+	enctypex_funcx((unsigned char *)&encxkeyb, (unsigned char *)GameSpy_Get_Game_SecKey("daikatana"),(unsigned char *)challenge, (unsigned char *)&servchal,servchallen);
+}
+#endif
+
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
 static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, bool uncompressed)
 {
-	int				buflen;
-	char			*buff;
-	char			*port;
+	unsigned char	buff[MAX_GSPY_BUFF_SIZE + 1] = {0};
+	unsigned char	*p;
+	unsigned int	buflen = 0;
+	char			port[10] = {0};
 	char			*ip = NULL;
 	server_t		*server = &servers;
 	unsigned int	servercount;
-	unsigned int	bufsize;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1103,31 +1176,18 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
 
-	bufsize = 1 + 26 * (numservers + 1) + 6; // 1 byte for /, 26 bytes for ip:port/, 6 for final/
-	buflen = 0;
-	buff = (char *)calloc(1, bufsize);
-	if (!buff)
-	{
-		printf("Fatal Error: memory allocation failed for buff in SendGameSpyListToClient\n");
-		return;
-	}
+	p = (unsigned char *)&buff;
 
-	port = (char *)calloc(1, bufsize);
-	if(!port)
-	{
-		if(buff)
-		{
-			free(buff);
-		}
-		printf("Fatal Error: memory allocation failed for port in SendGameSpyListToClient\n");
-		return;
-	}
+//	SetupGamespy2CryptHeader(&p, &buflen);
+
+//	buflen += 1 + 26 * (numservers + 1) + 6; // 1 byte for /, 26 bytes for ip:port/, 6 for final/
 
 	if (uncompressed)
 	{
-		memcpy (buff, listheader, 1);
+		memcpy (p, listheader, 1);
 		buflen += 1;
 	}
+
 	servercount = 0;
 
 	while (server->next)
@@ -1140,44 +1200,80 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 			if (uncompressed)
 			{
-				memcpy (buff + buflen, "ip\\", 3); // 3
+				if (buflen + 3+16+1+6 >= MAX_GSPY_BUFF_SIZE)
+				{
+					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+					send(socket, p, buflen, 0);
+					memset(&buff, 0, sizeof(buff));
+					buflen = 0;
+				}
+
+				memcpy (p + buflen, "ip\\", 3); // 3
 				buflen += 3;
-				memcpy (buff + buflen, ip, DG_strlen(ip)); // 16
+				memcpy (p + buflen, ip, DG_strlen(ip)); // 16
 				buflen += DG_strlen(ip);
-				memcpy (buff + buflen, ":", 1); // 1
+				memcpy (p + buflen, ":", 1); // 1
 				buflen += 1;
 			
 				sprintf(port ,"%d\\", ntohs(server->port));
-				memcpy (buff + buflen, port, DG_strlen(port)); // 6
+				memcpy(p + buflen, port, DG_strlen(port)); // 6
 				buflen += DG_strlen(port);
 				servercount++;
-				continue;
 			}
-			memcpy (buff + buflen, &server->ip.sin_addr, 4);
-			buflen += 4;
-			memcpy (buff + buflen, &server->port, 2);
-			buflen += 2;
-			servercount++;
+			else
+			{
+				if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+				{
+					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+					send(socket, p, buflen, 0);
+					memset(&buff, 0, sizeof(buff));
+					buflen = 0;
+				}
+
+				memcpy (p + buflen, &server->ip.sin_addr, 4);
+				buflen += 4;
+				memcpy (p + buflen, &server->port, 2);
+				buflen += 2;
+				servercount++;
+			}
 		}
 	}
 
-	if(uncompressed)
+	if (uncompressed)
 	{
-		memcpy(buff + buflen, finalstring, 6);
+		if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+		{
+			Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+			send(socket, p, buflen, 0);
+			memset(&buff, 0, sizeof(buff));
+			buflen = 0;
+		}
+
+		memcpy(p + buflen, finalstring, 6);
 		buflen += 6;
 	}
 	else
 	{
-		memcpy(buff + buflen, "\\", 1);
+		if (buflen + 7 >= MAX_GSPY_BUFF_SIZE)
+		{
+			Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+			send(socket, p, buflen, 0);
+			memset(&buff, 0, sizeof(buff));
+			buflen = 0;
+		}
+
+		memcpy(p + buflen, "\\", 1);
 		buflen += 1;
-		memcpy(buff + buflen, finalstring, 6);
+		memcpy(p + buflen, finalstring, 6);
 		buflen += 6;
 	}
 
 //	Con_DPrintf ("[I] TCP GameSpy list: %s\n", buff);
 	Con_DPrintf ("[I] TCP GameSpy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 
-	if(send(socket, buff, buflen, 0) == SOCKET_ERROR)
+//	enctypex_func6e((unsigned char *)&encxkeyb,((unsigned char *)&buff)+headerLen,buflen-headerLen);
+
+	if (send(socket, p, buflen, 0) == SOCKET_ERROR)
 	{
 		Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
 	}
@@ -1186,16 +1282,6 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 				inet_ntoa (from->sin_addr), 
 				servercount, /* sent */
 				numservers); /* on record */
-
-	if(buff)
-	{
-		free(buff);
-	}
-
-	if(port)
-	{
-		free(port);
-	}
 }
 
 static void Ack (struct sockaddr_in *from, char* dataPacket)
@@ -1288,7 +1374,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual gamename\\ */
 
-	if(!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15")) /* FS: FIXME: maraakate.org hack */
+	if(!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15") || !strcmp(inet_ntoa(from->sin_addr), "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
 	{
 		struct hostent *remoteHost;
 		remoteHost = gethostbyname("maraakate.org");
@@ -1399,6 +1485,15 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			mslist += sizeof(qw_reply_hdr);
 			Parse_UDP_MS_List (mslist, quakeworld, dglen-sizeof(qw_reply_hdr));
 			return;
+		}
+		else if(!strnicmp(data, OOB_SEQ"getservers daikatana", 24))
+		{
+			Con_DPrintf ("[I] %s:%d : query (%d bytes)\n",
+			inet_ntoa(from->sin_addr),
+			htons(from->sin_port),
+			dglen);
+
+			SendUDPServerListToClient(from, "daikatana");
 		}
 		else if(!strnicmp(data, OOB_SEQ"query", 9) || !strnicmp(data, OOB_SEQ"getservers", 14))
 		{
@@ -1667,6 +1762,30 @@ void ParseCommandLine(int argc, char **argv)
 			bLogTCP = true;
 		}
 
+		if (!strnicmp(argv[i] + 1, "cwd", 3))
+		{
+			if (_chdir(argv[i+1]))
+			{
+				switch (errno)
+				{
+					case ENOENT:
+						printf( "Unable to locate the directory: %s\n", argv[1] );
+						break;
+					case EINVAL:
+						printf( "Invalid buffer.\n");
+						break;
+					default:
+						printf( "Unknown error.\n");
+				}
+			}
+			else
+			{
+				char buff[250];
+				_getcwd(buff, sizeof(buff)-1);
+				printf("CWD set to %s\n", buff);
+				AddToMessageLog(TEXT(buff));
+			}
+		}
 	}
 }
 
@@ -1716,7 +1835,7 @@ void ServiceCtrlHandler (DWORD Opcode)
 } 
 
 void ServiceStart (DWORD argc, LPTSTR *argv) 
-{ 
+{
 	ParseCommandLine(argc, argv); // we call it here and in gsmaster_main
 	
 	MyServiceStatus.dwServiceType        = SERVICE_WIN32; 
@@ -2121,6 +2240,7 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	int retry = 0;
 	int sleepMs = 50;
 	int challengeBufferLen = 0;
+	int encodetype = 0;
 	char *challengeKey = (char *)calloc(1, sizeof(char)*7);
 	char *challengeBuffer = (char *)calloc(1, sizeof(char)*84);
 	char *enctypeKey = NULL;
@@ -2196,9 +2316,9 @@ retryIncomingTcpValidate:
 
 	if(enctypeKey && enctypeKey[0] != 0)
 	{
-		int encodetype = atoi(enctypeKey);
+		encodetype = atoi(enctypeKey);
 
-		if(encodetype > 0)
+		if(encodetype > 1)
 		{
 			Con_DPrintf("[E] Encode Type: %d not supported on this server\n", encodetype);
 			goto closeTcpSocket;
@@ -2639,7 +2759,6 @@ static void Master_DL_List (char *filename)
 	struct in_addr addr;
 	struct sockaddr_in from;
 	size_t ipStrLen = 0;
-
 	long fileSize;
 	FILE *listFile = fopen(filename, "r+");
 	size_t toEOF = 0;

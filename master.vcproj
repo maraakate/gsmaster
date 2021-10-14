@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="master"
 	ProjectGUID="{D77BCE42-3896-4E6B-AB16-8802A8549AB4}"
+	RootNamespace="master"
 	>
 	<Platforms>
 		<Platform
@@ -397,6 +398,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\enctypex.h"
+				>
+			</File>
+			<File
 				RelativePath="master.h"
 				>
 			</File>
@@ -483,6 +488,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\encytpex.c"
+				>
 			</File>
 			<File
 				RelativePath="gamestable.c"

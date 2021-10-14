@@ -94,55 +94,55 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 #define _CRTAPI1 _cdecl
 #endif
 
+int global_argc;
+char **global_argv;
+DWORD global_dwArgc;
+LPTSTR *global_lpszArgv;
+
 int _CRTAPI1 main(int argc, char **argv)
-{ 
-    SERVICE_TABLE_ENTRY dispatchTable[] = 
-    { 
-        { TEXT(SZSERVICENAME), (LPSERVICE_MAIN_FUNCTION)service_main }, 
-        { NULL, NULL } 
-    }; 
- 
+{
+	SERVICE_TABLE_ENTRY dispatchTable[] =
+    {
+		{ TEXT(SZSERVICENAME), (LPSERVICE_MAIN_FUNCTION)service_main },
+		{ NULL, NULL }
+	};
+
+#ifdef UNICODE
+	global_lpszArgv = CommandLineToArgvW(GetCommandLineW(), &(dwArgc) );
+#else
+	global_dwArgc   = (DWORD) argc;
+	global_lpszArgv = argv;
+#endif
+
 	if ( (argc > 1) &&
-         ((*argv[1] == '-') || (*argv[1] == '/')) )
+		((*argv[1] == '-') || (*argv[1] == '/')) )
     { 
-        if (!stricmp( "install", argv[1]+1))
-        { 
-            CmdInstallService(); 
-        } 
-        else if (!stricmp( "remove", argv[1]+1))
-        { 
-            CmdRemoveService(); 
-        } 
-        else if (!stricmp( "debug", argv[1]+1))
-        { 
-            bDebug = TRUE; 
-            CmdDebugService(argc, argv); 
-        }
-        else if (!stricmp( "ip", argv[1]+1))
-        { 
-            bDebug = TRUE; 
-            CmdDebugService(argc, argv); 
-			printf("IP address was correctly initialized.\n");
-        }
-        else if (!stricmp( "port", argv[1]+1))
-        { 
-            bDebug = TRUE; 
-            CmdDebugService(argc, argv); 
-			printf("Port address was correctly initialized.\n");
+		if (!stricmp( "install", argv[1]+1))
+		{
+			CmdInstallService();
+		}
+		else if (!stricmp( "remove", argv[1]+1))
+		{
+			CmdRemoveService();
+		}
+		else if (!stricmp( "debug", argv[1]+1))
+		{
+			bDebug = TRUE;
+			CmdDebugService(argc, argv);
         }
 		else if (!stricmp("?", argv[1]+1) || !stricmp("help", argv[1]+1))
 		{
 			bDebug = TRUE;
 			CmdDebugService(argc, argv);
 		}
-        else 
-        { 
-            goto dispatch; 
-        } 
-        exit(0); 
-    } 
- 
-    // if it doesn't match any of the above parameters 
+        else
+        {
+            goto dispatch;
+        }
+        exit(0);
+    }
+
+	// if it doesn't match any of the above parameters
     // the service control manager may be starting the service 
     // so we must call StartServiceCtrlDispatcher 
     dispatch: 
@@ -153,14 +153,14 @@ int _CRTAPI1 main(int argc, char **argv)
         printf( "\nStartServiceCtrlDispatcher being called.\n" ); 
         printf( "This may take several seconds.  Please wait.\n" ); 
  
-        if (!StartServiceCtrlDispatcher(dispatchTable)) 
+        if (!StartServiceCtrlDispatcher(dispatchTable))
             AddToMessageLog(TEXT("StartServiceCtrlDispatcher failed.")); 
 
 		return 0;
-} 
- 
- 
- 
+}
+
+
+
 // 
 //  FUNCTION: service_main 
 // 
@@ -203,7 +203,7 @@ void WINAPI service_main(DWORD dwArgc, LPTSTR *lpszArgv)
         goto cleanup; 
  
  
-    ServiceStart( dwArgc, lpszArgv ); 
+    ServiceStart( global_dwArgc, global_lpszArgv );
  
 cleanup: 
  
@@ -543,7 +543,7 @@ void CmdDebugService(int argc, char ** argv)
  
     SetConsoleCtrlHandler( ControlHandler, TRUE ); 
  
-    ServiceStart( dwArgc, lpszArgv ); 
+    ServiceStart( dwArgc, lpszArgv );
 } 
 
 // 

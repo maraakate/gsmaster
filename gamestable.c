@@ -26,6 +26,7 @@ game_table_t gameTable[] =
 {
 	{"blood2", "jUOF0p", 0},
 	{"daikatana", "fl8aY7", 27991},
+	{"gamespy2", "d4kZca", 0},
 	{"gspylite", "mgNUaC", 0},
 	{"heretic2", "2iuCAS", 0},
 	{"hexenworld", "6SeXQB", 0},

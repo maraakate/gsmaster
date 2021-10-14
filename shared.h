@@ -29,7 +29,7 @@ typedef enum {false, true} bool;
 #define MAXPENDING 16 /* FS: Max pending TCP connections */
 #define MAX_INCOMING_LEN 4000 /* FS: made this a #define.  GameSpy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
 #define MAX_GAMENAME_LEN 16 /* FS: Max gamename length used for game table and server structs */
-#define DEFAULTHEARTBEAT 5*60 /* FS: 5 minutes */
+#define DEFAULTHEARTBEAT (5*60) /* FS: 5 minutes */
 
 #define LOGTCP_DEFAULTNAME "gspytcp.log"
 
@@ -41,7 +41,7 @@ typedef enum {false, true} bool;
 #define MAX_INFO_STRING 64
 #define MAX_DNS_NAMELEN 254
 #define MAX_PORT_LEN 5
-#define MAX_SERVERLIST_LINE MAX_DNS_NAMELEN+1+MAX_PORT_LEN+1+MAX_GAMENAME_LEN /* FS: 1 == ',' separator */
+#define MAX_SERVERLIST_LINE (MAX_DNS_NAMELEN+1+MAX_PORT_LEN+1+MAX_GAMENAME_LEN) /* FS: 1 == ',' separator */
 #define MAX_GSPY_VAL 89 /* FS: See gsmalg.cpp */
 
 #define MOTD_SIZE 1024
