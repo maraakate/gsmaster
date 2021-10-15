@@ -402,7 +402,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\gamestable.h"
+				>
+			</File>
+			<File
 				RelativePath="master.h"
+				>
+			</File>
+			<File
+				RelativePath=".\osinfo.h"
 				>
 			</File>
 			<File

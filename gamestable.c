@@ -13,22 +13,18 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
+
 #include "dk_essentials.h"
+#include "gamestable.h"
 
-typedef struct
-{
-	const char *gamename;
-	const char *seckey;
-	unsigned short	motdPort;
-} game_table_t;
-
-game_table_t gameTable[] =
+game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
 {
 	{"blood2", "jUOF0p", 0},
 	{"daikatana", "fl8aY7", 27991},
 	{"gamespy2", "d4kZca", 0},
 	{"gspylite", "mgNUaC", 0},
 	{"heretic2", "2iuCAS", 0},
+	{"hexen2", "FAKEKEY", 0},
 	{"hexenworld", "6SeXQB", 0},
 	{"kingpin", "QFWxY2", 0},
 	{"nolf", "Jn3Ab4", 0},

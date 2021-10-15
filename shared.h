@@ -10,12 +10,13 @@
 #define DG_MISC_NO_GNU_SOURCE
 #include "dg_misc.h" /* FS: Caedes special safe string stuff */
 #include "curl_dl.h"
+#include "osinfo.h"
 
 #define SRV_RUN		1
 #define SRV_STOP	0
 #define SRV_STOPPED	-1
 
-#define VERSION "0.3a"
+#define VERSION "0.5"
 
 #ifndef NULL
 #define NULL 0
@@ -30,6 +31,7 @@ typedef enum {false, true} bool;
 #define MAX_INCOMING_LEN 4000 /* FS: made this a #define.  GameSpy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
 #define MAX_GAMENAME_LEN 16 /* FS: Max gamename length used for game table and server structs */
 #define DEFAULTHEARTBEAT (5*60) /* FS: 5 minutes */
+#define DEFAULTSERVERLISTGENERATIONTIME (2*60) /* FS: 2 minutes */
 
 #define LOGTCP_DEFAULTNAME "gspytcp.log"
 

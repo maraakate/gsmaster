@@ -1,4 +1,4 @@
-	    GameSpy Encode Type 0 Emulator 0.1 by [HCI]Maraakate
+	    GameSpy Encode Type 0 Emulator 0.5 by [HCI]Maraakate
 
 ==========================
 1. Welcome
@@ -8,7 +8,7 @@ Probable exploits, if you find some serious issues email me
 emoaddict15@gmail.com.
 
 ==========================
-2. Welcome
+2. Supported Games
 ==========================
 * Blood 2
 * Daikatana
@@ -66,36 +66,45 @@ port scheme.
  -minimumheartbeats x - Minimum number of sucessful heartbeats that need to be
                         sent before a server will be added to the list.
 
- -tcpport - xxxxx causes server to bind to a particular TCP port for the
-  GameSpy list query from clients. Default is 28900.
-  If you depart from this you need to communicate this to your users somehow.
-  This feature is included since this code could be modified to provide
-  master services for other games.
+ -tcpport <port> - Causes server to bind to a particular TCP port for the
+                   GameSpy list query from clients. Default is 28900.
+                   If you depart from this you need to communicate this to your
+                   users somehow.
 
  -serverlist <filename> - Adds servers from a list.  Hostnames are supported.
   Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
 
  -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other
-  places.
+               places.
 
  -masterlist <filename> - Adds master servers from a list.  Every hour
-  GSMaster will ping these servers to grab their lists.
-  Hostnames are supported.
+                          GSMaster will ping these servers to grab their
+                          lists. Hostnames are supported.
   Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27900,quakeworld.
 
+ -cwd <path> - Sets the current working directory.  Useful for
+               running as a windows service or scheduled task.
+
+ -generateserverlist <folderpath> - Generate a server list as a text file to
+                                    the specified folder path.
+
+ -serverlisttimer <seconds> - Time (in seconds) to generate a server list.
+                              Use with -generateserverlist.
 
 ==========================
 4. Known Bugs
 ==========================
 * DJGPP port is currently broken.  Compiles and executes fine, but only
   pings the last server in a large batch.
+* EncType 1 (GameSpy3D) partially supported via decoding.  Encoding the
+  server list back to the GameSpy3D client is not supported.
 
 ==========================
 5. Credits
 ==========================
 [HCI]Mara'akate - Code
 Daniel Gibson - DG_misc.h string header
-Luigi Auriemma - gsmalg.cpp for GameSpy validation algorithim (aluigi.org)
+Luigi Auriemma - For GameSpy validation algorithms (aluigi.org)
 QwazyWabbit - Original Code for Q2Master
 Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
 ID Software - Quake 2 Info_ValueForKeys and other small helper functions
