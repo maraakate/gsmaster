@@ -114,6 +114,8 @@ static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the 
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
 static char quakeworld[] = "quakeworld";
 static char quake2[] = "quake2";
+static char hexen2[] = "hexen2";
+static char hexenworld[] = "hexenworld";
 
 /* FS: Re-adapted from uhexen2 */
 static const unsigned char hw_hwq_msg[] =
@@ -155,6 +157,20 @@ static const unsigned char qw_reply_hdr2[] =
 static const unsigned char q2_reply_hdr[] =
 		{ 255, 255, 255, 255,
 		  's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
+
+static const unsigned char q2_msg[] =
+		{ 255, 255, 255, 255,
+		  'g', 'e', 't', 's', 'e', 'r', 'v', 'e', 'r', 's', '\0'};
+
+static const unsigned char q2_msg_alternate[] =
+		{ 255, 255, 255, 255,
+		  'q', 'u', 'e', 'r', 'y', '\0'};
+
+static const unsigned char q2_msg_noOOB[] =
+		{ 'g', 'e', 't', 's', 'e', 'r', 'v', 'e', 'r', 's', '\0'};
+
+static const unsigned char q2_msg_alternate_noOOB[] =
+		{ 'q', 'u', 'e', 'r', 'y', '\0'};
 
 static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey, int enctype);
 static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from);
@@ -1493,13 +1509,19 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 
 	if (strstr(data, OOB_SEQ)) /* FS: GameSpy doesn't send the 0xFF out-of-band. */
 	{
-		if (!strnicmp(data, (char *)q2_reply_hdr, sizeof(q2_reply_hdr)))
+		if (!strnicmp(data, (char *)q2_reply_hdr, sizeof(q2_reply_hdr)-1))
 		{
 			Con_DPrintf("[I] Got a Quake 2 master server list!\n");
 
 			mslist += sizeof(q2_reply_hdr);
 			Parse_UDP_MS_List (mslist, quake2, dglen-sizeof(q2_reply_hdr));
 			return;
+		}
+		else if (!strnicmp(data, (char *)hw_reply_hdr, sizeof(hw_reply_hdr)-1))
+		{
+			Con_DPrintf("[I] Got a HexenWorld master server list!\n");
+			mslist += sizeof(hw_reply_hdr);
+			Parse_UDP_MS_List (mslist, hexenworld, dglen-sizeof(q2_reply_hdr));
 		}
 		else if (!strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) || !strnicmp(data, (char *)qw_reply_hdr2, sizeof(qw_reply_hdr2)-1)) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
 		{
@@ -2931,7 +2953,11 @@ static void Master_DL_List (char *filename)
 		}
 		else if (!strcmp(listToken, "quake2"))
 		{
-			sendto(listener, OOB_SEQ"getservers", 14, 0, (struct sockaddr *)&from, sizeof(from));
+			/* FS: This is stupid because there's gloom and other things and yeah... so let's try all options. */
+			sendto(listener, (char *)q2_msg, sizeof(q2_msg), 0, (struct sockaddr *)&from, sizeof(from));
+			sendto(listener, (char *)q2_msg_alternate, sizeof(q2_msg_alternate), 0, (struct sockaddr *)&from, sizeof(from));
+			sendto(listener, (char *)q2_msg_noOOB, sizeof(q2_msg_noOOB), 0, (struct sockaddr *)&from, sizeof(from));
+			sendto(listener, (char *)q2_msg_alternate_noOOB, sizeof(q2_msg_alternate_noOOB), 0, (struct sockaddr *)&from, sizeof(from));
 		}
 		else
 		{
