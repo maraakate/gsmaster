@@ -1012,25 +1012,25 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 
 	if (!stricmp(gamename, "hexenworld"))
 	{
-		udpheadersize = sizeof(hw_reply_hdr) + 1;
+		udpheadersize = sizeof(hw_reply_hdr);
 		udpheader = (char *)calloc(1, udpheadersize);
 		if (!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memcpy(udpheader, hw_reply_hdr, sizeof(hw_reply_hdr));
+		memcpy(udpheader, hw_reply_hdr, udpheadersize);
 	}
 	else if (!stricmp(gamename, "quakeworld"))
 	{
-		udpheadersize = sizeof(qw_reply_hdr) + 1;
+		udpheadersize = sizeof(qw_reply_hdr);
 		udpheader = (char *)calloc(1, udpheadersize);
 		if (!udpheader)
 		{
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memcpy(udpheader, qw_reply_hdr, sizeof(qw_reply_hdr));
+		memcpy(udpheader, qw_reply_hdr, udpheadersize);
 	}
 	else if (!stricmp(gamename, "quake2") || !stricmp(gamename, "daikatana"))
 	{
@@ -1041,7 +1041,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
 			return;
 		}
-		memcpy(udpheader, q2_reply_hdr, sizeof(udpheadersize));
+		memcpy(udpheader, q2_reply_hdr, udpheadersize);
 	}
 	else
 	{
