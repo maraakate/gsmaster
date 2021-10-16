@@ -2272,6 +2272,12 @@ static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validateP
 		return true;
 	}
 
+	if (!strcmp(gameKey,"heretic2"))
+	{
+		Con_DPrintf("[I] Heretic2 does not respond to \\secure\\ from servers.  Skipping validation.\n");
+		return true;
+	}
+
 	ptr = Info_ValueForKey(validatePacket, "validate");
 	if (!ptr)
 	{
