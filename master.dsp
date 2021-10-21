@@ -148,6 +148,10 @@ SOURCE=.\master.c
 
 SOURCE=.\service.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\enctype1_helper.c
+# End Source File
 # End Group
 # End Target
 # End Project

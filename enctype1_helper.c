@@ -90,8 +90,8 @@ void func2(unsigned char *, int, unsigned char *);
 void func3(unsigned char *, int, unsigned char *);
 void func6(unsigned char *, int, unsigned char *);
 int  func7(int, unsigned char *);
-void func4(unsigned char *, int, unsigned char *);
-int  func5(int, unsigned char *, int, int *, int *, unsigned char *);
+void func4(const unsigned char *, int, unsigned char *);
+int  func5(int, const unsigned char *, int, int *, int *, unsigned char *);
 void func8(unsigned char *, int, const unsigned char *);
 
 /*
@@ -573,7 +573,7 @@ void func3(unsigned char *data, int len, unsigned char *buff)
 
 
 // 0048D9B0
-void func4(unsigned char *id, int idlen, unsigned char *enc1key)
+void func4(const unsigned char *id, int idlen, unsigned char *enc1key)
 {
     int             i,
         n1 = 0,
@@ -603,7 +603,7 @@ void func4(unsigned char *id, int idlen, unsigned char *enc1key)
 
 
 // 0048D910
-int func5(int cnt, unsigned char *id, int idlen, int *n1, int *n2, unsigned char *enc1key)
+int func5(int cnt, const unsigned char *id, int idlen, int *n1, int *n2, unsigned char *enc1key)
 {
     int     i,
         tmp,

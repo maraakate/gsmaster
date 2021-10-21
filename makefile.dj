@@ -24,7 +24,8 @@ SERVER = master.o \
 	gamestable.o \
 	dk_essentials.o \
 	gsmalg.o \
-	curl_dl.o
+	curl_dl.o \
+	enctype1_helper.o
 
 
 OBJECTS = $(SERVER)

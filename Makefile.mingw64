@@ -25,7 +25,8 @@ SERVER = master.o \
 	dk_essentials.o \
 	gsmalg.o \
 	service.o \
-	curl_dl.o
+	curl_dl.o \
+	enctype1_helper.o
 
 
 OBJECTS = $(SERVER)
