@@ -14,7 +14,7 @@ emoaddict15@gmail.com.
 * Blood 2
 * Daikatana
 * GameSpy 3D
-* GameSpy Lite Utility (used by Kingpin and South Park),
+* GameSpy Lite Utility (used by Kingpin and South Park)
 * Heretic 2
 * Hexen 2
 * HexenWorld
@@ -99,8 +99,6 @@ port scheme.
 ==========================
 * DJGPP port is currently broken.  Compiles and executes fine, but only
   pings the last server in a large batch.
-* EncType 1 (GameSpy3D) partially supported via decoding.  Encoding the
-  server list back to the GameSpy3D client is not supported.
 
 ==========================
 5. Credits
