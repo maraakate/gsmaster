@@ -2621,6 +2621,11 @@ void Add_Servers_From_List(char *filename)
 		gamenameFromHttp = (char *)malloc(7);
 		Com_sprintf(gamenameFromHttp, 7, "quake1");
 	}
+	else if (strstr(filename, "kpservers"))
+	{
+		gamenameFromHttp = (char *)malloc(8);
+		Com_sprintf(gamenameFromHttp, 8, "kingpin");
+	}
 	else
 	{
 		gamenameFromHttp = NULL;
@@ -3060,16 +3065,12 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 		return;
 	}
 
-//	printf ("size: %d\n", size);
-
 	/* each address is 4 bytes (ip) + 2 bytes (port) == 6 bytes */
-//	printf (" %d entries\n", (int)size / 6);
 	if (size % 6 != 0)
 		printf ("Warning: not counting truncated last entry\n");
 	while (size >= 6)
 	{
 		port = ntohs (tmp[4] + (tmp[5] << 8));
-//		printf ("%u.%u.%u.%u:%u\n", tmp[0], tmp[1], tmp[2], tmp[3], port);
 
 		Com_sprintf(ip, sizeof(ip), "%u.%u.%u.%u", tmp[0],tmp[1],tmp[2],tmp[3]);
 

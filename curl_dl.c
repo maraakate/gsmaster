@@ -173,6 +173,10 @@ void CURL_HTTP_Update (void)
 			{
 				CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt");
 			}
+			else if (!strcmp(name, "q1servers.txt"))
+			{
+				CURL_HTTP_StartDownload("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt");
+			}
 		}
 	}
 }
