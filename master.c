@@ -1127,13 +1127,13 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
  */
 static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challengeKey, int encType, struct sockaddr_in *from, bool uncompressed)
 {
-	unsigned char	buff[MAX_GSPY_BUFF_SIZE + 1] = {0}; /* FS: FIXME: Redo this with realloc or something so it can grow. */
-	unsigned char	*p;
+	unsigned char	*buff;
 	unsigned int	buflen = 0;
 	char			port[10] = {0};
 	char			*ip = NULL;
 	server_t		*server = &servers;
 	unsigned int	servercount;
+	unsigned int	maxsize = GSPY_BUFFER_GROWBY_SIZE;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1143,13 +1143,18 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 		return;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
+	buff = calloc(1, maxsize);
+	if (!buff)
+	{
+		Con_DPrintf("[E] Couldn't allocate temporary buffer!\n");
+		return;
+	}
 
-	p = (unsigned char *)&buff;
+	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
 
 	if (uncompressed)
 	{
-		memcpy (p, listheader, 1);
+		memcpy (buff, listheader, 1);
 		buflen += 1;
 	}
 
@@ -1165,47 +1170,79 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 
 			if (uncompressed)
 			{
-				if ((encType != 1) && (buflen + 3+16+1+6 >= MAX_GSPY_BUFF_SIZE))
+				if ((encType != 1) && (buflen + 3+16+1+6 >= MAX_GSPY_MTU_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-					if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 					{
 						Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+						free(buff);
 						return;
 					}
-					memset(&buff, 0, sizeof(buff));
+					memset(buff, 0, maxsize);
 					buflen = 0;
 				}
 
-				memcpy (p + buflen, "ip\\", 3); // 3
+				if (buflen + 3+16+1+6 >= maxsize)
+				{
+					unsigned char *temp;
+
+					temp = buff;
+					maxsize += GSPY_BUFFER_GROWBY_SIZE;
+					buff = realloc(buff, maxsize);
+					if (!buff)
+					{
+						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
+						free(temp);
+						return;
+					}
+				}
+
+				memcpy (buff + buflen, "ip\\", 3); // 3
 				buflen += 3;
-				memcpy (p + buflen, ip, DG_strlen(ip)); // 16
+				memcpy (buff + buflen, ip, DG_strlen(ip)); // 16
 				buflen += DG_strlen(ip);
-				memcpy (p + buflen, ":", 1); // 1
+				memcpy (buff + buflen, ":", 1); // 1
 				buflen += 1;
-			
+
 				sprintf(port ,"%d\\", ntohs(server->port));
-				memcpy(p + buflen, port, DG_strlen(port)); // 6
+				memcpy(buff + buflen, port, DG_strlen(port)); // 6
 				buflen += DG_strlen(port);
 				servercount++;
 			}
 			else
 			{
-				if ((encType != 1) && (buflen + 6 >= MAX_GSPY_BUFF_SIZE))
+				if ((encType != 1) && (buflen + 6 >= MAX_GSPY_MTU_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-					if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 					{
+						free(buff);
 						Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
 						return;
 					}
-					memset(&buff, 0, sizeof(buff));
+					memset(buff, 0, maxsize);
 					buflen = 0;
 				}
 
-				memcpy (p + buflen, &server->ip.sin_addr, 4);
+				if (buflen + 6 >= maxsize)
+				{
+					unsigned char *temp;
+
+					temp = buff;
+					maxsize += GSPY_BUFFER_GROWBY_SIZE;
+					buff = realloc(buff, maxsize);
+					if (!buff)
+					{
+						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
+						free(temp);
+						return;
+					}
+				}
+
+				memcpy (buff + buflen, &server->ip.sin_addr, 4);
 				buflen += 4;
-				memcpy (p + buflen, &server->port, 2);
+				memcpy (buff + buflen, &server->port, 2);
 				buflen += 2;
 				servercount++;
 			}
@@ -1216,19 +1253,20 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	{
 		if (encType != 1)
 		{
-			if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+			if (buflen + 6 >= MAX_GSPY_MTU_SIZE)
 			{
 				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-				if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+				if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 				{
+					free(buff);
 					Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
 					return;
 				}
-				memset(&buff, 0, sizeof(buff));
+				memset(buff, 0, maxsize);
 				buflen = 0;
 			}
 
-			memcpy(p + buflen, finalstring, 6);
+			memcpy(buff + buflen, finalstring, 6);
 			buflen += 6;
 		}
 	}
@@ -1236,21 +1274,37 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	{
 		if (encType != 1)
 		{
-			if (buflen + 7 >= MAX_GSPY_BUFF_SIZE)
+			if (buflen + 7 >= MAX_GSPY_MTU_SIZE)
 			{
 				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-				if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+				if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 				{
+					free(buff);
 					Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
 					return;
 				}
-				memset(&buff, 0, sizeof(buff));
+				memset(buff, 0, maxsize);
 				buflen = 0;
 			}
 
-			memcpy(p + buflen, "\\", 1);
+			if (buflen + 7 >= maxsize)
+			{
+				unsigned char *temp;
+
+				temp = buff;
+				maxsize += GSPY_BUFFER_GROWBY_SIZE;
+				buff = realloc(buff, maxsize);
+				if (!buff)
+				{
+					Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
+					free(temp);
+					return;
+				}
+			}
+
+			memcpy(buff + buflen, "\\", 1);
 			buflen += 1;
-			memcpy(p + buflen, finalstring, 6);
+			memcpy(buff + buflen, finalstring, 6);
 			buflen += 6;
 		}
 	}
@@ -1265,25 +1319,29 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 		if (!encryptedBuffer)
 		{
 			Con_DPrintf("[E] Failed to allocate memory for temporary encrypt buffer!\n");
+			free(buff);
 			return;
 		}
 
 		head = encryptedBuffer;
-		buflen = create_enctype1_buffer(challengeKey, p, buflen, encryptedBuffer);
-		while (buflen >= MAX_GSPY_BUFF_SIZE)
+		buflen = create_enctype1_buffer(challengeKey, buff, buflen, encryptedBuffer);
+		while (buflen >= MAX_GSPY_MTU_SIZE)
 		{
-			if (send(socket, encryptedBuffer, MAX_GSPY_BUFF_SIZE, 0) == SOCKET_ERROR)
+			if (send(socket, encryptedBuffer, MAX_GSPY_MTU_SIZE, 0) == SOCKET_ERROR)
 			{
 				Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+				free(buff);
 				free(head);
 				return;
 			}
-			buflen -= MAX_GSPY_BUFF_SIZE;
-			encryptedBuffer += MAX_GSPY_BUFF_SIZE;
+			buflen -= MAX_GSPY_MTU_SIZE;
+			encryptedBuffer += MAX_GSPY_MTU_SIZE;
 		}
+
 		if (send(socket, encryptedBuffer, buflen, 0) == SOCKET_ERROR)
 		{
 			Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+			free(buff);
 			free(head);
 			return;
 		}
@@ -1292,11 +1350,13 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	}
 	else
 	{
-		if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+		if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 		{
 			Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
 		}
 	}
+
+	free(buff);
 
 	Con_DPrintf ("[I] TCP GameSpy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 	Con_DPrintf ("[I] sent TCP GameSpy list to client %s, servers: %u of %u\n", 

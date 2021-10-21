@@ -85,7 +85,8 @@ void signal_handler(int sig);
 #define A2A_PING			'k'
 #define	S2M_SHUTDOWN		'C'
 
-#define MAX_GSPY_BUFF_SIZE 1022
+#define MAX_GSPY_MTU_SIZE 1022
+#define GSPY_BUFFER_GROWBY_SIZE 511
 
 typedef struct server_s server_t;
 
