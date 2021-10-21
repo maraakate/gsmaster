@@ -1272,7 +1272,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	}
 	else
 	{
-		if (encType != 1)
+		if (encType != 1) /* FS: This COULD be added to enctype1 and it will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
 		{
 			if (buflen + 7 >= MAX_GSPY_MTU_SIZE)
 			{
@@ -1314,6 +1314,16 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	{
 		unsigned char *encryptedBuffer;
 		unsigned char *head;
+
+		/* FS: If we don't send something then GS3D shows the icon as "red".
+		 *     \\final\\ is not part of standard protocol from old Aluigi dumps, but GS3D responds to it so... */
+		if (buflen == 0)
+		{
+			memcpy(buff + buflen, "\\", 1);
+			buflen += 1;
+			memcpy(buff + buflen, finalstring, 6);
+			buflen += 6;
+		}
 
 		encryptedBuffer = calloc(1, (buflen * 2) + 100);
 		if (!encryptedBuffer)
