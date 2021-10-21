@@ -172,7 +172,7 @@ static const unsigned char q2_msg_noOOB[] =
 static const unsigned char q2_msg_alternate_noOOB[] =
 		{ 'q', 'u', 'e', 'r', 'y', '\0'};
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey, int enctype);
+static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, int enctype);
 static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from);
 static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from);
 static void Check_Port_Boundaries (void);
@@ -1122,82 +1122,12 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	}
 }
 
-#if 0 /* FS: TODO: Get with OpenSpy devs or Aluigi to get EncType 1 working with GS3D :/ */
-#define CRYPTCHAL_LEN 10
-#define SERVCHAL_LEN 25
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-
-void BufferWriteByte(uint8_t **buffer, uint32_t *len, uint8_t value) {
-	**buffer = value;
-	*len += sizeof(uint8_t);
-	*buffer += sizeof(uint8_t);
-}
-
-void BufferWriteData(uint8_t **buffer, uint32_t *len, uint8_t *data, uint32_t writelen) {
-	memcpy(*buffer,data,writelen);
-	*len += writelen;
-	*buffer += writelen;
-}
-
-uint32_t headerLen;
-unsigned char encxkeyb[261];
-
-char challenge[11];
-#include "enctypex.h"
-
-void gen_random(char *s, const int len) {
-	int i;
-//	srand((unsigned int)time(NULL));
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-
-    for (i = 0; i < len; ++i) {
-        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    s[len] = 0;
-}
-
-static void SetupGamespy2CryptHeader (uint8_t **dst, uint32_t *len)
-{
-//	memset(&options->cryptkey,0,sizeof(options->cryptkey));
-//	srand(time(NULL));
-	uint32_t cryptlen = CRYPTCHAL_LEN;
-	uint8_t cryptchal[CRYPTCHAL_LEN] = { 0 };
-	uint32_t servchallen = SERVCHAL_LEN;
-	uint8_t servchal[SERVCHAL_LEN] = { 0 };
-	uint16_t *backendflags = (uint16_t *)(&cryptchal);
-	uint32_t i;
-
-	headerLen = (servchallen+cryptlen)+(sizeof(uint8_t)*2);
-
-	for(i=0;i<cryptlen;i++) {
-		cryptchal[i] = (uint8_t)rand();
-	}
-
-	for(i=0;i<servchallen;i++) {
-		servchal[i] = (uint8_t)rand();
-	}
-
-	BufferWriteByte(dst,len,cryptlen^0xEC);
-	BufferWriteData(dst, len, (uint8_t *)&cryptchal, cryptlen);
-	BufferWriteByte(dst,len,servchallen^0xEA);
-	BufferWriteData(dst, len, (uint8_t *)&servchal, servchallen);
-	enctypex_funcx((unsigned char *)&encxkeyb, (unsigned char *)GameSpy_Get_Game_SecKey("daikatana"),(unsigned char *)challenge, (unsigned char *)&servchal,servchallen);
-}
-#endif
-
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
-static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct sockaddr_in *from, bool uncompressed)
+static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challengeKey, int encType, struct sockaddr_in *from, bool uncompressed)
 {
-	unsigned char	buff[MAX_GSPY_BUFF_SIZE + 1] = {0};
+	unsigned char	buff[MAX_GSPY_BUFF_SIZE + 1] = {0}; /* FS: FIXME: Redo this with realloc or something so it can grow. */
 	unsigned char	*p;
 	unsigned int	buflen = 0;
 	char			port[10] = {0};
@@ -1217,10 +1147,6 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 	p = (unsigned char *)&buff;
 
-//	SetupGamespy2CryptHeader(&p, &buflen);
-
-//	buflen += 1 + 26 * (numservers + 1) + 6; // 1 byte for /, 26 bytes for ip:port/, 6 for final/
-
 	if (uncompressed)
 	{
 		memcpy (p, listheader, 1);
@@ -1239,10 +1165,14 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 			if (uncompressed)
 			{
-				if (buflen + 3+16+1+6 >= MAX_GSPY_BUFF_SIZE)
+				if ((encType != 1) && (buflen + 3+16+1+6 >= MAX_GSPY_BUFF_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-					send(socket, p, buflen, 0);
+					if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+					{
+						Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+						return;
+					}
 					memset(&buff, 0, sizeof(buff));
 					buflen = 0;
 				}
@@ -1261,10 +1191,14 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 			}
 			else
 			{
-				if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+				if ((encType != 1) && (buflen + 6 >= MAX_GSPY_BUFF_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-					send(socket, p, buflen, 0);
+					if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+					{
+						Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+						return;
+					}
 					memset(&buff, 0, sizeof(buff));
 					buflen = 0;
 				}
@@ -1280,43 +1214,91 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, struct socka
 
 	if (uncompressed)
 	{
-		if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+		if (encType != 1)
 		{
-			Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-			send(socket, p, buflen, 0);
-			memset(&buff, 0, sizeof(buff));
-			buflen = 0;
-		}
+			if (buflen + 6 >= MAX_GSPY_BUFF_SIZE)
+			{
+				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+				if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+				{
+					Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+					return;
+				}
+				memset(&buff, 0, sizeof(buff));
+				buflen = 0;
+			}
 
-		memcpy(p + buflen, finalstring, 6);
-		buflen += 6;
+			memcpy(p + buflen, finalstring, 6);
+			buflen += 6;
+		}
 	}
 	else
 	{
-		if (buflen + 7 >= MAX_GSPY_BUFF_SIZE)
+		if (encType != 1)
 		{
-			Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-			send(socket, p, buflen, 0);
-			memset(&buff, 0, sizeof(buff));
-			buflen = 0;
+			if (buflen + 7 >= MAX_GSPY_BUFF_SIZE)
+			{
+				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+				if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+				{
+					Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+					return;
+				}
+				memset(&buff, 0, sizeof(buff));
+				buflen = 0;
+			}
+
+			memcpy(p + buflen, "\\", 1);
+			buflen += 1;
+			memcpy(p + buflen, finalstring, 6);
+			buflen += 6;
+		}
+	}
+
+
+	if (encType == 1)
+	{
+		unsigned char *encryptedBuffer;
+		unsigned char *head;
+
+		encryptedBuffer = calloc(1, (buflen * 2) + 100);
+		if (!encryptedBuffer)
+		{
+			Con_DPrintf("[E] Failed to allocate memory for temporary encrypt buffer!\n");
+			return;
 		}
 
-		memcpy(p + buflen, "\\", 1);
-		buflen += 1;
-		memcpy(p + buflen, finalstring, 6);
-		buflen += 6;
+		head = encryptedBuffer;
+		buflen = create_enctype1_buffer(challengeKey, p, buflen, encryptedBuffer);
+		while (buflen >= MAX_GSPY_BUFF_SIZE)
+		{
+			if (send(socket, encryptedBuffer, MAX_GSPY_BUFF_SIZE, 0) == SOCKET_ERROR)
+			{
+				Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+				free(head);
+				return;
+			}
+			buflen -= MAX_GSPY_BUFF_SIZE;
+			encryptedBuffer += MAX_GSPY_BUFF_SIZE;
+		}
+		if (send(socket, encryptedBuffer, buflen, 0) == SOCKET_ERROR)
+		{
+			Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+			free(head);
+			return;
+		}
+
+		free(head);
 	}
-
-//	Con_DPrintf ("[I] TCP GameSpy list: %s\n", buff);
-	Con_DPrintf ("[I] TCP GameSpy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-
-//	enctypex_func6e((unsigned char *)&encxkeyb,((unsigned char *)&buff)+headerLen,buflen-headerLen);
-
-	if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+	else
 	{
-		Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+		if (send(socket, p, buflen, 0) == SOCKET_ERROR)
+		{
+			Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+		}
 	}
-	
+
+	Con_DPrintf ("[I] TCP GameSpy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 	Con_DPrintf ("[I] sent TCP GameSpy list to client %s, servers: %u of %u\n", 
 				inet_ntoa (from->sin_addr), 
 				servercount, /* sent */
@@ -1348,7 +1330,7 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 			}
 			else
 			{
-				server->validated = GameSpy_Challenge_Cross_Check(server->challengeKey, dataPacket, 1, GAMESPY_ENCTYPE0);
+				server->validated = GameSpy_Challenge_Cross_Check(server->challengeKey, dataPacket, server->challengeKey, 1, GAMESPY_ENCTYPE0);
 			}
 
 			server->queued_pings = 0;
@@ -2149,7 +2131,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 	motdSocket = INVALID_SOCKET;
 }
 
-static void GameSpy_Parse_List_Request(char *clientName, char *querystring, SOCKET socket, struct sockaddr_in *from)
+static void GameSpy_Parse_List_Request(char *clientName, char *querystring, char *challengeKey, int encType, SOCKET socket, struct sockaddr_in *from)
 {
 	char *gamename = NULL;
 	char *tokenPtr = NULL;
@@ -2212,17 +2194,16 @@ error:
 		Log_Sucessful_TCP_Connections(logBuffer);
 	}
 
-	SendGameSpyListToClient(socket, gamename, from, uncompressed);
+	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, uncompressed);
 }
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, int rawsecurekey, int enctype)
+static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, int enctype)
 {
 	char *ptr = NULL;
 	char validateKey[MAX_INFO_STRING];
 	char gameKey[MAX_INFO_STRING];
 	char *decodedKey = NULL;
 	const char *gameSecKey = NULL;
-	char challengeKey[MAX_INFO_STRING];
 
 	if (!validation_required)
 	{
@@ -2398,7 +2379,7 @@ retryIncomingTcpValidate:
 	}
 
 	/* FS: Not supported or junk data, bye. */
-	if (!GameSpy_Challenge_Cross_Check(challengeBuffer, incomingTcpValidate, 0, encodetype))
+	if (!GameSpy_Challenge_Cross_Check(challengeBuffer, incomingTcpValidate, challengeKey, 0, encodetype))
 	{
 		goto closeTcpSocket;
 	}
@@ -2411,7 +2392,7 @@ retryIncomingTcpValidate:
 	/* FS: This is the later version of GameSpy which sent it all as one packet. */
 	if (strstr(incomingTcpValidate,"\\list\\"))
 	{
-		GameSpy_Parse_List_Request(clientName, incomingTcpValidate, socket, from);
+		GameSpy_Parse_List_Request(clientName, incomingTcpValidate, challengeKey, encodetype, socket, from);
 		goto closeTcpSocket;
 	}
 
@@ -2457,7 +2438,7 @@ retryIncomingTcpList:
 			//parse this packet
 			if (strstr(incomingTcpList, "\\list\\") && strstr(incomingTcpList, "\\gamename\\")) /* FS: We must have \\list\\ and \\gamename\\ for this to work */
 			{
-				GameSpy_Parse_List_Request(clientName, incomingTcpList, socket, from);
+				GameSpy_Parse_List_Request(clientName, incomingTcpList, challengeKey, encodetype, socket, from);
 			}
 			else
 			{

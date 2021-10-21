@@ -3,7 +3,7 @@
 
 #include "shared.h"
 
-#define MAX_SUPPORTED_GAMETYPES 19
+#define MAX_SUPPORTED_GAMETYPES 20
 
 typedef struct game_table_s
 {

@@ -19,5 +19,6 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp); /* 
 unsigned char *gsseckey(unsigned char *dst, unsigned char *src, unsigned char *key, int enctype);
 int enctype1decoder_wrapper(unsigned char *key, unsigned char *data, int size);
 int enctype1encoder_wrapper(unsigned char *key, unsigned char *data, int size);
+int create_enctype1_buffer(const char *validate_key, char *input, int inputLen, char *output);
 
 #endif // _DK_ESSENTIALS_H

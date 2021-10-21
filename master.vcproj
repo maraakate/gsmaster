@@ -398,10 +398,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\enctypex.h"
-				>
-			</File>
-			<File
 				RelativePath=".\gamestable.h"
 				>
 			</File>
@@ -498,7 +494,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\encytpex.c"
+				RelativePath=".\enctype1_helper.c"
 				>
 			</File>
 			<File

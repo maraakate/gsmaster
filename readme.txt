@@ -1,9 +1,10 @@
-	    GameSpy Encode Type 0 Emulator 0.5 by [HCI]Maraakate
+	    GameSpy Encode Type 0 Emulator 0.6 by [HCI]Maraakate
 
 ==========================
 1. Welcome
 ==========================
-A GameSpy EncType 0 emulator.  Based off of Q2Master v1.1 by QwazyWabbit.
+A GameSpy EncType 0 and EncType 1 emulator.
+Based off of Q2Master v1.1 by QwazyWabbit.
 Probable exploits, if you find some serious issues email me
 emoaddict15@gmail.com.
 
@@ -12,12 +13,14 @@ emoaddict15@gmail.com.
 ==========================
 * Blood 2
 * Daikatana
+* GameSpy 3D
 * GameSpy Lite Utility (used by Kingpin and South Park),
 * Heretic 2
 * Hexen 2
 * HexenWorld
 * Kingpin
 * No One Lives Forever
+* No One Lives Forever 2
 * Quake 1
 * QuakeSpy Utility
 * QuakeWorld

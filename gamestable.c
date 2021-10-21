@@ -28,6 +28,7 @@ game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
 	{"hexenworld", "6SeXQB", 0},
 	{"kingpin", "QFWxY2", 0},
 	{"nolf", "Jn3Ab4", 0},
+	{"nolf2", "g3Fo6x", 0},
 	{"quake1", "7W7yZz", 0},
 	{"quake2", "rtW0xg", 27901},
 	{"quakeworld", "FU6Vqn", 27501},

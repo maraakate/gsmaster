@@ -16,7 +16,7 @@
 #define SRV_STOP	0
 #define SRV_STOPPED	-1
 
-#define VERSION "0.5"
+#define VERSION "0.6"
 
 #ifndef NULL
 #define NULL 0
