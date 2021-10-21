@@ -2228,6 +2228,14 @@ static void GameSpy_Parse_List_Request(char *clientName, char *querystring, char
 			gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\list\\ */
 		}
 
+		if (strncmp(tokenPtr, "info\\", 5) == 0) /* FS: "LanMaster" does this, maybe some other games. http://web.archive.org/web/20030813080427/http://www.lanparty.com/lanmaster/ */
+		{
+			while (strcmp(gamename, "info"))
+			{
+				gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\info\\ */
+			}
+		}
+
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\gamename\\ */
 		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\actual gamename\\ */
 
