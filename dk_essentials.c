@@ -25,7 +25,7 @@
 #define DG_MISC_IMPLEMENTATION /* FS: Caedes special string safe stuff */
 #include "dk_essentials.h"
 
-void Com_sprintf( char *dest, int size, const char *fmt, ... )
+void Com_sprintf( char *dest, size_t size, const char *fmt, ... )
 {
 	// DG: implement this with vsnprintf() instead of a big buffer etc
 	va_list	argptr;
@@ -172,9 +172,9 @@ char *Info_ValueForKey(const char *s, const char *key)
 	}
 }
 
-void GameSpy_Create_Challenge_Key(char *s, const int len)
+void GameSpy_Create_Challenge_Key(char *s, const size_t len)
 {
-	int i;
+	size_t i;
 	static const char challengeKey[] =
 	"abcdefghijklmnopqrstuvwxyz"
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -204,16 +204,16 @@ char *DK_strlwr (char *s)
 /* FS: From Quake 2's Cbuf_Execute */
 void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp)
 {
-	unsigned int		i;
-	char	*text;
+	size_t		i;
+	char *text;
 	char	line[MAX_SERVERLIST_LINE];
 
 	while (fileSize)
 	{
-// find a \n or ; line break
+		// find a \n or ; line break
 		text = (char *)fileBuffer;
 
-		for (i=0 ; i< fileSize ; i++)
+		for (i = 0; i < fileSize; i++)
 		{
 			if (text[i] == '\n')
 				break;
@@ -222,9 +222,9 @@ void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp
 		memcpy (line, text, i);
 		line[i] = 0;
 
-// delete the text from the command buffer and move remaining commands down
-// this is necessary because commands (exec, alias) can insert data at the
-// beginning of the text buffer
+		// delete the text from the command buffer and move remaining commands down
+		// this is necessary because commands (exec, alias) can insert data at the
+		// beginning of the text buffer
 
 		if (i == fileSize)
 			fileSize = 0;
@@ -232,10 +232,10 @@ void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp
 		{
 			i++;
 			fileSize -= i;
-			memmove (text, text+i, fileSize);
+			memmove (text, text + i, fileSize);
 		}
 
-// execute the command line
+		// execute the command line
 		AddServers_From_List_Execute(line, gamenameFromHttp);
 	}
 }

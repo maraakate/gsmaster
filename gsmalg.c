@@ -113,7 +113,7 @@ static unsigned char gsvalfunc(int reg)
 
 unsigned char *gsseckey(unsigned char *dst, unsigned char *src, unsigned char *key, int enctype)
 {
-	int i, size, keysz;
+	size_t i, size, keysz;
 	unsigned char enctmp[256], tmp[66], x, y, z, a, b, *p;
 
 	if(!dst)

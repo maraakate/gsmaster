@@ -628,7 +628,7 @@ __inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from
 				ntohs(from->sin_port),
 				NET_ErrorString());
 	closesocket(socket);
-	socket = INVALID_SOCKET;
+	socket = INVALID_SOCKET; //-V1001
 }
 
 //
@@ -987,7 +987,6 @@ static void RunFrame (void)
 					Con_DPrintf("[I] Naraakate.org port clashing hack.\n");
 					server->shutdown_issued = 0;
 					server->queued_pings = 0;
-					server->last_ping = curtime;
 					server->last_heartbeat = curtime;
 					server->heartbeats++;
 					server->validated = 1;
@@ -1015,7 +1014,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	char			*udpheader = NULL;
 	server_t		*server = &servers;
 	unsigned int	servercount = 0;
-	unsigned int	bufsize = 0;
+	size_t			bufsize = 0;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1116,12 +1115,12 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challengeKey, int encType, struct sockaddr_in *from, bool uncompressed)
 {
 	unsigned char	*buff;
-	unsigned int	buflen = 0;
+	int				buflen = 0;
 	char			port[10] = {0};
 	char			*ip = NULL;
 	server_t		*server = &servers;
 	unsigned int	servercount;
-	unsigned int	maxsize = GSPY_BUFFER_GROWBY_SIZE;
+	int				maxsize = GSPY_BUFFER_GROWBY_SIZE;
 
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
@@ -1436,7 +1435,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	data += 10; /* FS: heartbeat\\ */
 	cmdToken = DK_strtok_r(data, seperators, &cmdPtr); /* FS: \\actual port\\ */
 
-	if (!cmdPtr)
+	if (!cmdToken || !cmdPtr)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No query port) from %s:%u!\n", inet_ntoa (from->sin_addr), htons(from->sin_port));
 		return;
@@ -1445,7 +1444,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	queryPort = (unsigned short)atoi(cmdToken); /* FS: Query port */
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\gamename\\ */
 
-	if (!cmdPtr || strcmp(cmdToken, "gamename") != 0)
+	if (!cmdToken || !cmdPtr || strcmp(cmdToken, "gamename") != 0)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No gamename) from %s:%u!\n", inet_ntoa (from->sin_addr), htons(from->sin_port));
 		return;
@@ -1968,8 +1967,8 @@ void ServiceStart (DWORD argc, LPTSTR *argv)
 
 	// Initialization complete - report running status. 
 	MyServiceStatus.dwCurrentState       = SERVICE_RUNNING; 
-	MyServiceStatus.dwCheckPoint         = 0; 
-	MyServiceStatus.dwWaitHint           = 0; 
+	MyServiceStatus.dwCheckPoint         = 0;  //-V1048
+	MyServiceStatus.dwWaitHint           = 0;  //-V1048
 	
 	if (!debug)
 	{
@@ -2185,7 +2184,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 	free(fileBuffer);
 
 	closesocket(motdSocket);
-	motdSocket = INVALID_SOCKET;
+	motdSocket = INVALID_SOCKET; //-V1001
 }
 
 static void GameSpy_Parse_List_Request(char *clientName, char *querystring, char *challengeKey, int encType, SOCKET socket, struct sockaddr_in *from)

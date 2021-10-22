@@ -3,12 +3,12 @@
 
 #include "shared.h"
 
-void Com_sprintf( char *dest, int size, const char *fmt, ... );
+void Com_sprintf( char *dest, size_t size, const char *fmt, ... );
 char *Con_Timestamp (char *msg);
 void Con_DPrintf (const char *fmt, ...);
 char *DK_strtok_r(char *s, const char *delim, char **last);
 char *Info_ValueForKey(const char *s, const char *key); /* FS: From Quake 2 */
-void GameSpy_Create_Challenge_Key(char *s, const int len);
+void GameSpy_Create_Challenge_Key(char *s, const size_t len);
 const char *GameSpy_Get_Game_SecKey (char *gamename);
 unsigned short GameSpy_Get_MOTD_Port (char *gamename);
 char *DK_strlwr (char *s); /* FS: Some compilers may not have this */
