@@ -1016,6 +1016,10 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	unsigned int	servercount = 0;
 	size_t			bufsize = 0;
 
+	/* FS: *** NOTE THIS DOES NOT WORK WELL WITH LISTS OVER 1400 MTU!  THIS PROTOCOL HAS NO HINT
+	       *** THAT THERE ARE ADDITIONAL PACKETS WAITING!
+	 */
+
 	// assume buffer size needed is for all current servers (numservers)
 	// and eligible servers in list will always be less or equal to numservers
 	if (!gamename || gamename[0] == 0)
@@ -1092,18 +1096,19 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		}
 	}
 
-	Con_DPrintf ("[I] query response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-
 	if ((sendto (listener, buff, buflen, 0, (struct sockaddr *)from, sizeof(*from))) == SOCKET_ERROR)
 	{
 		Con_DPrintf ("[E] list socket error on send! code %s.\n", NET_ErrorString());
 	}
-
-	Con_DPrintf ("[I] sent %s server list to client %s, servers: %u of %u\n",
-				gamename,
-				inet_ntoa (from->sin_addr),
-				servercount, /* sent */
-				numservers); /* on record */
+	else
+	{
+		Con_DPrintf ("[I] query response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
+		Con_DPrintf ("[I] sent %s server list to client %s, servers: %u of %u\n",
+			gamename,
+			inet_ntoa (from->sin_addr),
+			servercount, /* sent */
+			numservers); /* on record */
+	}
 
 	free(udpheader);
 	free(buff);
@@ -1350,14 +1355,17 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 		if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
 		{
 			Con_DPrintf ("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+			free(buff);
+			return;
 		}
 	}
 
 	free(buff);
 
 	Con_DPrintf ("[I] TCP GameSpy list response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
-	Con_DPrintf ("[I] sent TCP GameSpy list to client %s, servers: %u of %u\n", 
-				inet_ntoa (from->sin_addr), 
+	Con_DPrintf ("[I] sent TCP GameSpy %s list to client %s, servers: %u of %u\n",
+				gamename,
+				inet_ntoa (from->sin_addr),
 				servercount, /* sent */
 				numservers); /* on record */
 }
