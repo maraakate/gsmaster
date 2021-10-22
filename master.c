@@ -20,7 +20,6 @@
 */
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1890,7 +1889,7 @@ void ParseCommandLine(int argc, char **argv)
 		}
 		else if (!strnicmp(argv[i] + 1, "cwd", 3))
 		{
-			if (_chdir(argv[i+1]))
+			if (chdir(argv[i+1]))
 			{
 				switch (errno)
 				{
@@ -1907,9 +1906,11 @@ void ParseCommandLine(int argc, char **argv)
 			else
 			{
 				char buff[250];
-				_getcwd(buff, sizeof(buff)-1);
+				getcwd(buff, sizeof(buff)-1);
 				printf("CWD set to %s\n", buff);
+#ifdef _WIN32
 				AddToMessageLog(TEXT(buff));
+#endif
 			}
 		}
 	}

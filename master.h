@@ -2,6 +2,8 @@
 #define MASTER_H
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
 
 #define PORTREUSE SO_REUSEADDR
 void SetGSMasterRegKey(const char* name, const char *value);

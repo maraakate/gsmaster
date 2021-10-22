@@ -24,10 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#endif
+#include "master.h"
 
 static const unsigned char enctype1_master_key[] = /* pre-built */
 "\x01\xba\xfa\xb2\x51\x00\x54\x80\x75\x16\x8e\x8e\x02\x08\x36\xa5"
