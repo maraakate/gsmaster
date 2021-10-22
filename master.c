@@ -2704,7 +2704,7 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 		}
 
 		queryPort = (unsigned short)atoi(listToken);
-		if (queryPort <= 0 || queryPort > 65536)
+		if (queryPort == 0)
 		{
 			Con_DPrintf("[E] Invalid Port specified for '%s' in server list; skipping.\n", ip);
 			break;
@@ -2982,7 +2982,7 @@ static void Master_DL_List (char *filename)
 		}
 
 		queryPort = (unsigned short)atoi(listToken);
-		if (queryPort <= 0 || queryPort > 65536)
+		if (queryPort == 0)
 		{
 			Con_DPrintf("[E] Invalid Port specified for '%s' in server list; skipping.\n", ip);
 			break;
