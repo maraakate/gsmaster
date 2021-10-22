@@ -114,7 +114,6 @@ static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the 
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
 static char quakeworld[] = "quakeworld";
 static char quake2[] = "quake2";
-static char hexen2[] = "hexen2";
 static char hexenworld[] = "hexenworld";
 
 /* FS: Re-adapted from uhexen2 */
@@ -638,7 +637,7 @@ int gsmaster_main (int argc, char **argv)
 	return 0;
 }
 
-__inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from)
+static __inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from)
 {
 	Con_DPrintf ("[E] TCP socket error during accept from %s:%d (%s)\n",
 				inet_ntoa (from->sin_addr),
@@ -2371,7 +2370,7 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	int challengeBufferLen = 0;
 	int encodetype = 0;
 	char *challengeKey;
-	char *challengeBuffer;
+	char *challengeBuffer = NULL;
 	char *enctypeKey = NULL;
 	char *clientName = NULL;
 

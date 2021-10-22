@@ -27,7 +27,6 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
-#pragma warning (disable : 4996)
 #endif
 
 static const unsigned char enctype1_master_key[] = /* pre-built */

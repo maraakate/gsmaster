@@ -9,7 +9,7 @@ else
 CFLAGS = -DNDEBUG -O2 -fomit-frame-pointer
 endif
 
-CFLAGS +=-m32 -Wall -Werror -fwrapv -fno-strict-aliasing
+CFLAGS +=-m32 -Wall -Werror -Wno-pointer-sign -fwrapv -fno-strict-aliasing
 
 WCFLAGS =
 WLFLAGS = -m32 -lws2_32
