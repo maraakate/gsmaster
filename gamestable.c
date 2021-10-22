@@ -50,7 +50,7 @@ const char *GameSpy_Get_Game_SecKey (char *gamename)
 		return NULL;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly sin) stupidly send it partially uppercase */
+	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
 
 	while (gameTable[x].gamename != NULL)
 	{

@@ -98,7 +98,7 @@ static double lastMasterListDL;
 
 static char serverListGenerationPath[MAX_PATH] = "";
 static double lastServerListGeneration;
-static int serverListGenerationTime = DEFAULTSERVERLISTGENERATIONTIME;
+static double serverListGenerationTime = DEFAULTSERVERLISTGENERATIONTIME;
 static bool bGenerateServerList;
 
 /* FS: For GameSpy list */
@@ -183,6 +183,24 @@ static void HTTP_DL_List(void);
 static void Master_DL_List(char *filename);
 static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size);
 static void GenerateServersList (void);
+
+static const char *GetValidationRequiredString (void)
+{
+	if (validation_required >= GAMESPY_VALIDATION_REQUIRED_ALL)
+	{
+		return "3 - All";
+	}
+	else if (validation_required == GAMESPY_VALIDATION_REQUIRED_SERVERS_ONLY)
+	{
+		return "2 - Servers Only";
+	}
+	else if (validation_required == GAMESPY_VALIDATION_REQUIRED_CLIENTS_ONLY)
+	{
+		return "1 - Clients Only";
+	}
+
+	return "0 - Disabled";
+}
 
 static void PrintBanner()
 {
@@ -285,7 +303,6 @@ static const char *NET_ErrorString(void)
 static void Log_Sucessful_TCP_Connections(char *logbuffer)
 {
 	FILE *f = fopen(logtcp_filename, "a+");
-
 	if (!f)
 	{
 		return;
@@ -406,7 +423,7 @@ int gsmaster_main (int argc, char **argv)
 	printf("Debugging mode: %d\n", debug);
 	printf("Send Acknowledgments: %d\n", bSendAck);
 	printf("Validate New Server Immediately: %d\n", bValidate_newserver_immediately);
-	printf("Require Validation: %d\n", validation_required);
+	printf("Require Validation: %s\n", GetValidationRequiredString());
 	printf("Heartbeat interval: %lu Minutes\n", heartbeatInterval/60);
 	printf("Minimum Heartbeats Required: %u\n", minimumHeartbeats);
 	printf("Timestamps: %d\n", timestamp);
@@ -417,7 +434,7 @@ int gsmaster_main (int argc, char **argv)
 	if (bGenerateServerList)
 	{
 		printf("\tLocation: %s\n", serverListGenerationPath);
-		printf("\tTimer: %d seconds\n", serverListGenerationTime);
+		printf("\tTimer: %g seconds\n", serverListGenerationTime);
 	}
 
 	listener = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -527,7 +544,7 @@ int gsmaster_main (int argc, char **argv)
 
 		CURL_HTTP_Update();
 
-		if (time(NULL)-lastMasterListDL > 3600) /* FS: Every hour get a new serverlist from QTracker */
+		if ((double)time(NULL) - lastMasterListDL > 3600.0) /* FS: Every hour get a new serverlist from QTracker */
 		{
 			HTTP_DL_List();
 
@@ -537,7 +554,7 @@ int gsmaster_main (int argc, char **argv)
 			}
 		}
 
-		if (bGenerateServerList && (time(NULL)-lastServerListGeneration > serverListGenerationTime))
+		if (bGenerateServerList && ((double)time(NULL) - lastServerListGeneration > serverListGenerationTime))
 		{
 			GenerateServersList();
 		}
@@ -904,7 +921,6 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr));
 		return;
 	}
-	
 	else
 	{
 		Con_DPrintf ("[W] shutdown issued from unregistered server %s!\n", inet_ntoa (from->sin_addr));
@@ -1162,7 +1178,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 
 			if (uncompressed)
 			{
-				if ((encType != 1) && (buflen + 3+16+1+6 >= MAX_GSPY_MTU_SIZE))
+				if ((encType != GAMESPY_ENCTYPE1) && (buflen + 3+16+1+6 >= MAX_GSPY_MTU_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
@@ -1204,7 +1220,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 			}
 			else
 			{
-				if ((encType != 1) && (buflen + 6 >= MAX_GSPY_MTU_SIZE))
+				if ((encType != GAMESPY_ENCTYPE1) && (buflen + 6 >= MAX_GSPY_MTU_SIZE))
 				{
 					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
@@ -1243,7 +1259,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 
 	if (uncompressed)
 	{
-		if (encType != 1)
+		if (encType != GAMESPY_ENCTYPE1)
 		{
 			if (buflen + 6 >= MAX_GSPY_MTU_SIZE)
 			{
@@ -1264,7 +1280,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	}
 	else
 	{
-		if (encType != 1) /* FS: This COULD be added to enctype1 and it will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
+		if (encType != GAMESPY_ENCTYPE1) /* FS: This COULD be added to enctype1 and it will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
 		{
 			if (buflen + 7 >= MAX_GSPY_MTU_SIZE)
 			{
@@ -1301,8 +1317,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 		}
 	}
 
-
-	if (encType == 1)
+	if (encType == GAMESPY_ENCTYPE1)
 	{
 		unsigned char *encryptedBuffer;
 		unsigned char *head;
@@ -1378,6 +1393,7 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 	while (server->next)
 	{
 		server = server->next;
+
 		//a match!
 		if (*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr && from->sin_port == server->port)
 		{
@@ -1442,7 +1458,6 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 	data += 10; /* FS: heartbeat\\ */
 	cmdToken = DK_strtok_r(data, seperators, &cmdPtr); /* FS: \\actual port\\ */
-
 	if (!cmdToken || !cmdPtr)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No query port) from %s:%u!\n", inet_ntoa (from->sin_addr), htons(from->sin_port));
@@ -1451,7 +1466,6 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 	queryPort = (unsigned short)atoi(cmdToken); /* FS: Query port */
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\gamename\\ */
-
 	if (!cmdToken || !cmdPtr || strcmp(cmdToken, "gamename") != 0)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No gamename) from %s:%u!\n", inet_ntoa (from->sin_addr), htons(from->sin_port));
@@ -1821,12 +1835,12 @@ void ParseCommandLine(int argc, char **argv)
 			if (!argv[i+1][0] || (argv[i+1][0] == '-'))
 			{
 				serverListGenerationTime = DEFAULTSERVERLISTGENERATIONTIME;
-				printf("No time set for server list generation  Using default of %d.\n", serverListGenerationTime);
+				printf("No time set for server list generation  Using default of %g.\n", serverListGenerationTime);
 			}
 			else
 			{
-				serverListGenerationTime = atoi(argv[i+1]);
-				printf("Set server list generation time to %d\n", serverListGenerationTime);
+				serverListGenerationTime = atof(argv[i+1]);
+				printf("Set server list generation time to %g\n", serverListGenerationTime);
 			}
 		}
 		else if (!strnicmp(argv[i] + 1, "serverlist", 10))
@@ -1965,14 +1979,14 @@ void ServiceStart (DWORD argc, LPTSTR *argv)
 	{
 		MyServiceStatusHandle = RegisterServiceCtrlHandler(argv[0],
 			(LPHANDLER_FUNCTION)ServiceCtrlHandler);
+
+		if (MyServiceStatusHandle == (SERVICE_STATUS_HANDLE)0)
+		{
+			printf("%s not started.\n", SZSERVICEDISPLAYNAME);
+			return;
+		}
 	}
 	
-	if (!debug && MyServiceStatusHandle == (SERVICE_STATUS_HANDLE)0)
-	{
-		printf("%s not started.\n", SZSERVICEDISPLAYNAME);
-		return;
-	}
-
 	// Initialization complete - report running status. 
 	MyServiceStatus.dwCurrentState       = SERVICE_RUNNING; 
 	MyServiceStatus.dwCheckPoint         = 0;  //-V1048
@@ -2014,14 +2028,12 @@ void SetGSMasterRegKey(const char* name, const char *value)
 		NULL,
 		&hKey,
 		&Disposition);
-	
 	if (status)
 	{
 		Con_DPrintf("Error creating registry key for %s\n", SZSERVICEDISPLAYNAME);
 	}
 	
 	status = RegSetValueEx(hKey, name, 0, REG_SZ, (unsigned char*)value, (DWORD)DG_strlen(value));
-	
 	if (status)
 	{
 		Con_DPrintf("Registry key not set for IP: %s\n", bind_ip);
@@ -2053,14 +2065,12 @@ void GetGSMasterRegKey(const char* name, const char *value)
 		NULL,
 		&hKey,
 		&Disposition);
-	
 	if (status)
 	{
 		Con_DPrintf("Registry key not found\n");
 	}
 	
 	status = RegQueryValueEx(hKey, name, NULL, NULL, (unsigned char*)value, &size);
-
 	if (status)
 	{
 		Con_DPrintf("Registry value not found %s\\%s\n", REGKEY_GSMASTERSERVER, name);
@@ -2276,12 +2286,12 @@ static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validateP
 		Con_DPrintf("[I] Skipping validation checks.\n");
 		return true;
 	}
-	else if (validation_required == 1 && rawsecurekey) /* FS: This is an "ack" sent from a heartbeat, dropserver, or addserver */
+	else if (validation_required == GAMESPY_VALIDATION_REQUIRED_CLIENTS_ONLY && rawsecurekey) /* FS: This is an "ack" sent from a heartbeat, dropserver, or addserver */
 	{
 		Con_DPrintf("[I] Skipping server validation checks.\n");
 		return true;
 	}
-	else if (validation_required == 2 && !rawsecurekey) /* FS: This is "list" requests sent from clients */
+	else if (validation_required == GAMESPY_VALIDATION_REQUIRED_SERVERS_ONLY && !rawsecurekey) /* FS: This is "list" requests sent from clients */
 	{
 		Con_DPrintf("[I] Skipping client validation checks.\n");
 		return true;
@@ -2451,14 +2461,12 @@ retryIncomingTcpValidate:
 		goto closeTcpSocket;
 	}
 
-	/* FS: Only enctype 0 is supported. */
+	/* FS: Only enctype 0 and 1 are supported. */
 	enctypeKey = Info_ValueForKey(incomingTcpValidate, "enctype");
-
 	if (enctypeKey && enctypeKey[0] != 0)
 	{
 		encodetype = atoi(enctypeKey);
-
-		if (encodetype > 1)
+		if (encodetype > GAMESPY_ENCTYPE1)
 		{
 			Con_DPrintf("[E] Encode Type: %d not supported on this server\n", encodetype);
 			goto closeTcpSocket;
@@ -2488,9 +2496,9 @@ retryIncomingTcpValidate:
 	 */
 	retry = 0;
 	sleepMs = 50;
+
 retryIncomingTcpList:
 	len = recv(socket, incomingTcpList, sizeof(incomingTcpList), 0);
-
 	if (len == SOCKET_ERROR)
 	{
 		if (lastWSAError == TCP_BLOCKING_ERROR && (retry < totalRetry)) /* FS: Yeah, yeah; this sucks.  But, it works OK for our purpose.  If you don't like this, redo it and send me the code. */
@@ -2672,7 +2680,6 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 	{
 		ipStrLen = DG_strlen(listToken)+2;
 		ip = (char *)malloc(sizeof(char)*(ipStrLen));
-
 		if (!ip)
 		{
 			printf("Memory error in AddServers_From_List_Execute!\n");
@@ -2681,17 +2688,15 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
-
-		/* FS: Junk data or doesn't exist. */
-		if (!remoteHost)
+		if (!remoteHost) /* FS: Junk data or doesn't exist. */
 		{
 			Con_DPrintf("[E] Could not resolve '%s' in server list; skipping.\n", ip);
 			break;
 		}
+
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 
 		listToken = DK_strtok_r(NULL, separators, &listPtr); // Port
-
 		if (!listToken)
 		{
 			Con_DPrintf("[E] Port not specified for '%s' in server list; skipping.\n", ip);
@@ -2699,8 +2704,7 @@ void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
 		}
 
 		queryPort = (unsigned short)atoi(listToken);
-
-		if (atoi(listToken) <= 0 || atoi(listToken) > 65536)
+		if (queryPort <= 0 || queryPort > 65536)
 		{
 			Con_DPrintf("[E] Invalid Port specified for '%s' in server list; skipping.\n", ip);
 			break;
@@ -2742,9 +2746,7 @@ static struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp)
 	struct in_addr addr = {0};
 
 	remoteHost = gethostbyname(hostnameIp);
-
-	/* FS: Can't resolve.  Just default to the old IP previously retained so it can be removed later. */
-	if (!remoteHost)
+	if (!remoteHost) /* FS: Can't resolve.  Just default to the old IP previously retained so it can be removed later. */
 	{
 		Con_DPrintf("Can't resolve %s.  Defaulting to previous known good %s.\n", hostnameIp, inet_ntoa(*server));
 		return *server;
@@ -2960,16 +2962,16 @@ static void Master_DL_List (char *filename)
 
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
-
-		free(ip);
-		ip = NULL;
-
-		/* FS: Junk data or doesn't exist. */
-		if (!remoteHost)
+		if (!remoteHost) /* FS: Junk data or doesn't exist. */
 		{
 			Con_DPrintf("[E] Could not resolve '%s' in server list; skipping.\n", ip);
 			break;
 		}
+
+		free(ip);
+		ip = NULL;
+
+
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 
 		listToken = DK_strtok_r(NULL, separators, &listPtr); // Port
@@ -2980,7 +2982,7 @@ static void Master_DL_List (char *filename)
 		}
 
 		queryPort = (unsigned short)atoi(listToken);
-		if (atoi(listToken) <= 0 || atoi(listToken) > 65536)
+		if (queryPort <= 0 || queryPort > 65536)
 		{
 			Con_DPrintf("[E] Invalid Port specified for '%s' in server list; skipping.\n", ip);
 			break;
@@ -3061,6 +3063,7 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 	/* each address is 4 bytes (ip) + 2 bytes (port) == 6 bytes */
 	if (size % 6 != 0)
 		printf ("Warning: not counting truncated last entry\n");
+
 	while (size >= 6)
 	{
 		port = ntohs (tmp[4] + (tmp[5] << 8));
@@ -3068,11 +3071,12 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 		Com_sprintf(ip, sizeof(ip), "%u.%u.%u.%u", tmp[0],tmp[1],tmp[2],tmp[3]);
 
 		remoteHost = gethostbyname(ip);
-		/* FS: Junk data or doesn't exist. */
-		if (!remoteHost)
+		if (!remoteHost) /* FS: Junk data or doesn't exist. */
 		{
-			Con_DPrintf("[E] Parse_UDP_MS_List: Could not resolve ip: %s!\n", ip);
-			return;
+			Con_DPrintf("[E] Parse_UDP_MS_List: Could not resolve ip: %s.  Skipping!\n", ip);
+			tmp += 6;
+			size -= 6;
+			continue;
 		}
 
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
@@ -3153,7 +3157,6 @@ static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *fr
 void GenerateServersList (void)
 {
 	server_t	*server = &servers;
-	const char *gamename = NULL;
 	char serverFile[MAX_PATH] = {0};
 	char tempStr[23] = {0};
 	int i = 0;
@@ -3168,8 +3171,7 @@ void GenerateServersList (void)
 	while (gameTable[i].gamename != NULL)
 	{
 		server = &servers;
-		gamename = gameTable[i].gamename;
-		Com_sprintf(serverFile, sizeof(serverFile), "%s\\%s.txt", serverListGenerationPath, gamename);
+		Com_sprintf(serverFile, sizeof(serverFile), "%s\\%s.txt", serverListGenerationPath, gameTable[i].gamename);
 		listFile = fopen(serverFile, "w");
 		if (!listFile)
 		{
@@ -3182,7 +3184,7 @@ void GenerateServersList (void)
 		{
 			server = server->next;
 
-			if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
+			if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gameTable[i].gamename) && server->ip.sin_port && server->port != 0)
 			{
 				Com_sprintf(tempStr, sizeof(tempStr), "%s:%d\n", inet_ntoa(server->ip.sin_addr), ntohs(server->port));
 				fwrite((char *)tempStr, 1, DG_strlen(tempStr), listFile);

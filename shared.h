@@ -31,7 +31,12 @@ typedef enum {false, true} bool;
 #define MAX_INCOMING_LEN 4000 /* FS: made this a #define.  GameSpy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
 #define MAX_GAMENAME_LEN 16 /* FS: Max gamename length used for game table and server structs */
 #define DEFAULTHEARTBEAT (5*60) /* FS: 5 minutes */
-#define DEFAULTSERVERLISTGENERATIONTIME (2*60) /* FS: 2 minutes */
+#define DEFAULTSERVERLISTGENERATIONTIME (2.0*60.0) /* FS: 2 minutes */
+
+#define GAMESPY_VALIDATION_REQUIRED_OFF 0
+#define GAMESPY_VALIDATION_REQUIRED_CLIENTS_ONLY 1
+#define GAMESPY_VALIDATION_REQUIRED_SERVERS_ONLY 2
+#define GAMESPY_VALIDATION_REQUIRED_ALL 3
 
 #define LOGTCP_DEFAULTNAME "gspytcp.log"
 
