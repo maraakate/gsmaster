@@ -589,31 +589,31 @@ BOOL WINAPI ControlHandler ( DWORD dwCtrlType )
 // 
 //  COMMENTS: 
 // 
-LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize ) 
-{ 
-    DWORD dwRet; 
-    LPTSTR lpszTemp = NULL; 
- 
-    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_ARGUMENT_ARRAY, 
-                           NULL, 
-                           GetLastError(), 
-                           LANG_NEUTRAL, 
-                           (LPTSTR)&lpszTemp, 
-                           0, 
-                           NULL ); 
- 
+LPTSTR GetLastErrorText(LPTSTR lpszBuf, DWORD dwSize)
+{
+    DWORD dwRet;
+    LPTSTR lpszTemp = NULL;
+
+    dwRet = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+        NULL,
+        GetLastError(),
+        LANG_NEUTRAL,
+        (LPTSTR)&lpszTemp,
+        0,
+        NULL);
+
     // supplied buffer is not long enough 
-    if ( !dwRet || ( (long)dwSize < (long)dwRet+14 ) ) 
-        lpszBuf[0] = TEXT('\0'); 
-    else 
-    { 
-        lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  //remove cr and newline character 
-        _stprintf( lpszBuf, TEXT("%s (0x%x)"), lpszTemp, (unsigned int)GetLastError() ); 
-    } 
- 
-    if ( lpszTemp ) 
-        LocalFree((HLOCAL) lpszTemp ); 
- 
-    return lpszBuf; 
-} 
+    if (!dwRet || !lpszTemp || ((long)dwSize < (long)dwRet + 14))
+        lpszBuf[0] = TEXT('\0');
+    else
+    {
+        lpszTemp[lstrlen(lpszTemp) - 2] = TEXT('\0');  //remove cr and newline character 
+        _stprintf(lpszBuf, TEXT("%s (0x%x)"), lpszTemp, (unsigned int)GetLastError());
+    }
+
+    if (lpszTemp)
+        LocalFree((HLOCAL)lpszTemp);
+
+    return lpszBuf;
+}
 #endif // WIN32

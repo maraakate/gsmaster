@@ -621,7 +621,7 @@ int gsmaster_main (int argc, char **argv)
 	return 0;
 }
 
-static void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from)
+__inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_in *from)
 {
 	Con_DPrintf ("[E] TCP socket error during accept from %s:%d (%s)\n",
 				inet_ntoa (from->sin_addr),
@@ -684,10 +684,7 @@ static void DropServer (server_t *server)
 		numservers--;
 	}
 
-	if (server)
-	{
-		free (server);
-	}
+	free (server);
 }
 
 static void AddServer (struct sockaddr_in *from, int normal, unsigned short queryPort, char *gamename, char *hostnameIp)
@@ -811,7 +808,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	}
 	else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 	{
-		memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
+		memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
 	}
 	else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 	{
@@ -828,7 +825,9 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	validateString[validateStringLen] = '\0';
 
-	if (stricmp(server->hostnameIp, "maraakate.org") && stricmp(server->hostnameIp, "172.86.181.38") && stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
+	if (stricmp(server->hostnameIp, "maraakate.org") != 0
+		&& stricmp(server->hostnameIp, "172.86.181.38") != 0
+		&& stricmp(server->hostnameIp, "127.0.0.1") != 0) /* FS: FIXME: maraakate.org hack */
 		sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
 }
 
@@ -884,7 +883,7 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		}
 		else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 		{
-			memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
+			memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
 		}
 		else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 		{
@@ -964,7 +963,7 @@ static void RunFrame (void)
 				}
 				else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 				{
-					memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
+					memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
 				}
 				else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 				{
@@ -1070,10 +1069,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	buff = (char *)calloc (1, bufsize);
 	if (!buff)
 	{
-		if (udpheader)
-		{
-			free(udpheader);
-		}
+		free(udpheader);
 
 		Con_DPrintf("Fatal Error: memory allocation failed in SendServerListToClient\n");
 		return;
@@ -1086,7 +1082,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
 		{
 			memcpy (buff + buflen, &server->ip.sin_addr, 4);
 			buflen += 4;
@@ -1097,7 +1093,6 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		}
 	}
 
-//	Con_DPrintf ("[I] list: %s\n", buff);
 	Con_DPrintf ("[I] query response (%d bytes) sent to %s:%d\n", buflen, inet_ntoa (from->sin_addr), ntohs (from->sin_port));
 
 	if ((sendto (listener, buff, buflen, 0, (struct sockaddr *)from, sizeof(*from))) == SOCKET_ERROR)
@@ -1111,15 +1106,8 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 				servercount, /* sent */
 				numservers); /* on record */
 
-	if (udpheader)
-	{
-		free(udpheader);
-	}
-
-	if (buff)
-	{
-		free(buff);
-	}
+	free(udpheader);
+	free(buff);
 }
 
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
@@ -1164,7 +1152,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && gamename && !strcmp(server->gamename, gamename))
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gamename))
 		{
 			ip = inet_ntoa(server->ip.sin_addr);
 
@@ -1187,15 +1175,15 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 				{
 					unsigned char *temp;
 
-					temp = buff;
 					maxsize += GSPY_BUFFER_GROWBY_SIZE;
-					buff = realloc(buff, maxsize);
-					if (!buff)
+					temp = realloc(buff, maxsize);
+					if (!temp)
 					{
 						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
-						free(temp);
+						free(buff);
 						return;
 					}
+					buff = temp;
 				}
 
 				memcpy (buff + buflen, "ip\\", 3); // 3
@@ -1229,15 +1217,15 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 				{
 					unsigned char *temp;
 
-					temp = buff;
 					maxsize += GSPY_BUFFER_GROWBY_SIZE;
-					buff = realloc(buff, maxsize);
-					if (!buff)
+					temp = realloc(buff, maxsize);
+					if (!temp)
 					{
 						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
-						free(temp);
+						free(buff);
 						return;
 					}
+					buff = temp;
 				}
 
 				memcpy (buff + buflen, &server->ip.sin_addr, 4);
@@ -1291,15 +1279,15 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 			{
 				unsigned char *temp;
 
-				temp = buff;
 				maxsize += GSPY_BUFFER_GROWBY_SIZE;
-				buff = realloc(buff, maxsize);
-				if (!buff)
+				temp = realloc(buff, maxsize);
+				if (!temp)
 				{
 					Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
-					free(temp);
+					free(buff);
 					return;
 				}
+				buff = temp;
 			}
 
 			memcpy(buff + buflen, "\\", 1);
@@ -1445,8 +1433,8 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 		}
 	}
 
-	cmdToken = DK_strtok_r(data, seperators, &cmdPtr); /* FS: \\heartbeat\\ */
-	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual port\\ */
+	data += 10; /* FS: heartbeat\\ */
+	cmdToken = DK_strtok_r(data, seperators, &cmdPtr); /* FS: \\actual port\\ */
 
 	if (!cmdPtr)
 	{
@@ -1457,7 +1445,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	queryPort = (unsigned short)atoi(cmdToken); /* FS: Query port */
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\gamename\\ */
 
-	if (!cmdPtr || strcmp(cmdToken,"gamename"))
+	if (!cmdPtr || strcmp(cmdToken, "gamename") != 0)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No gamename) from %s:%u!\n", inet_ntoa (from->sin_addr), htons(from->sin_port));
 		return;
@@ -1505,7 +1493,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			}
 			else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
 			{
-				memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring)+1);
+				memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
 			}
 			else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
 			{
@@ -1923,7 +1911,7 @@ void ServiceCtrlHandler (DWORD Opcode)
 
 		while(runmode == SRV_STOP)	//give loop time to die
 		{
-			int i = 0;
+			static int i = 0;
 			
 			msleep(500);	// SCM times out in 3 secs.
 			i++;		// we check twice per sec.
@@ -1955,7 +1943,7 @@ void ServiceCtrlHandler (DWORD Opcode)
 void ServiceStart (DWORD argc, LPTSTR *argv) 
 {
 	ParseCommandLine(argc, argv); // we call it here and in gsmaster_main
-	
+
 	MyServiceStatus.dwServiceType        = SERVICE_WIN32; 
 	MyServiceStatus.dwCurrentState       = SERVICE_START_PENDING; 
 	MyServiceStatus.dwControlsAccepted   = SERVICE_ACCEPT_STOP; 
@@ -1963,16 +1951,21 @@ void ServiceStart (DWORD argc, LPTSTR *argv)
 	MyServiceStatus.dwServiceSpecificExitCode = 0; 
 	MyServiceStatus.dwCheckPoint         = 0; 
 	MyServiceStatus.dwWaitHint           = 0; 
-	
-	MyServiceStatusHandle = RegisterServiceCtrlHandler(argv[0], 
-		(LPHANDLER_FUNCTION)ServiceCtrlHandler); 
+
+	MyServiceStatusHandle = (SERVICE_STATUS_HANDLE)0;
+
+	if (!debug)
+	{
+		MyServiceStatusHandle = RegisterServiceCtrlHandler(argv[0],
+			(LPHANDLER_FUNCTION)ServiceCtrlHandler);
+	}
 	
 	if (!debug && MyServiceStatusHandle == (SERVICE_STATUS_HANDLE)0)
 	{
 		printf("%s not started.\n", SZSERVICEDISPLAYNAME);
 		return;
 	}
-	
+
 	// Initialization complete - report running status. 
 	MyServiceStatus.dwCurrentState       = SERVICE_RUNNING; 
 	MyServiceStatus.dwCheckPoint         = 0; 
@@ -1982,7 +1975,7 @@ void ServiceStart (DWORD argc, LPTSTR *argv)
 	{
 		SetServiceStatus (MyServiceStatusHandle, &MyServiceStatus);
 	}
-	
+
 	gsmaster_main(argc, &argv[0]);
 }
 
@@ -2160,10 +2153,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 
 	if (toEOF <= 0)
 	{
-		if (fileBuffer)
-		{
-			free(fileBuffer);
-		}
+		free(fileBuffer);
 
 		printf("[E] Cannot read file 'motd.txt' into memory!\n");
 		return;
@@ -2192,10 +2182,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 
 	sendto(motdSocket, motd, DG_strlen(motd), 0, (struct sockaddr *)&addr, sizeof(addr));
 
-	if (fileBuffer)
-	{
-		free(fileBuffer);
-	}
+	free(fileBuffer);
 
 	closesocket(motdSocket);
 	motdSocket = INVALID_SOCKET;
@@ -2204,8 +2191,7 @@ static void GameSpy_Send_MOTD(char *gamename, struct sockaddr_in *from)
 static void GameSpy_Parse_List_Request(char *clientName, char *querystring, char *challengeKey, int encType, SOCKET socket, struct sockaddr_in *from)
 {
 	char *gamename = NULL;
-	char *tokenPtr = NULL;
-	char seperators[] = "\\";
+	char *ret = NULL;
 	char logBuffer[2048];
 	bool uncompressed = false;
 
@@ -2214,46 +2200,41 @@ static void GameSpy_Parse_List_Request(char *clientName, char *querystring, char
 		goto error;
 	}
 
-	if (strstr(querystring,"\\list\\cmp\\gamename\\"))
+	ret = strstr(querystring, "\\list\\cmp\\gamename\\");
+	if (ret)
 	{
-		gamename = DK_strtok_r(querystring, seperators, &tokenPtr);
-
-		while (strcmp(gamename, "cmp"))
+		if (strlen(ret) < 19)
 		{
-			gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\cmp\\ */
+			goto error;
 		}
 
-		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\gamename\\ */
-		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\actual gamename\\ */
-
+		ret += 19;
+		gamename = ret;
 		uncompressed = false;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
 	else /* FS: Older style that sends out "basic" style lists */
 	{
-		gamename = DK_strtok_r(querystring, seperators, &tokenPtr);
-
-		while (strcmp(gamename, "list"))
+		ret = strstr(querystring, "\\list\\");
+		if (!ret || strlen(ret) < 6)
 		{
-			gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\list\\ */
+			goto error;
+		}
+		ret += 6;
+
+		ret = strstr(ret, "\\gamename\\");
+		if (!ret || strlen(ret) < 10)
+		{
+			goto error;
 		}
 
-		if (strncmp(tokenPtr, "info\\", 5) == 0) /* FS: "LanMaster" does this, maybe some other games. http://web.archive.org/web/20030813080427/http://www.lanparty.com/lanmaster/ */
-		{
-			while (strcmp(gamename, "info"))
-			{
-				gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\info\\ */
-			}
-		}
-
-		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\gamename\\ */
-		gamename = DK_strtok_r(NULL, seperators, &tokenPtr); /* FS: \\actual gamename\\ */
-
+		ret += 10;
+		gamename = ret;
 		uncompressed = true;
 		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
 	}
 
-	if (!gamename || gamename[0] == 0)
+	if (gamename[0] == 0)
 	{
 error:
 		Con_DPrintf("[I] Invalid TCP list request from %s:%d.  Sending %s string.\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port), finalstringerror);
@@ -2314,7 +2295,7 @@ static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validateP
 		return false;
 	}
 
-	DG_strlcpy(challengeKey,ptr,sizeof(challengeKey));
+	DG_strlcpy(challengeKey, ptr, DG_strlen(ptr)+1);
 
 	ptr = Info_ValueForKey(validatePacket, "gamename");
 	if (!ptr)
@@ -2369,13 +2350,27 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	int len = 0;
 	int lastWSAError = 0;
 	int retry = 0;
-	int sleepMs = 50;
+	int sleepMs;
 	int challengeBufferLen = 0;
 	int encodetype = 0;
-	char *challengeKey = (char *)calloc(1, sizeof(char)*7);
-	char *challengeBuffer = (char *)calloc(1, sizeof(char)*84);
+	char *challengeKey;
+	char *challengeBuffer;
 	char *enctypeKey = NULL;
 	char *clientName = NULL;
+
+	challengeKey = (char *)calloc(1, sizeof(char) * 7);
+	if (!challengeKey)
+	{
+		Con_DPrintf("[E] Couldn't allocate temporary buffer.\n");
+		goto closeTcpSocket;
+	}
+
+	challengeBuffer = (char *)calloc(1, sizeof(char) * 84);
+	if (!challengeBuffer)
+	{
+		Con_DPrintf("[E] Couldn't allocate temporary buffer.\n");
+		goto closeTcpSocket;
+	}
 
 	memset(incomingTcpValidate, 0, sizeof(incomingTcpValidate));
 	memset(incomingTcpList, 0, sizeof(incomingTcpList));
@@ -2390,8 +2385,15 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	Con_DPrintf("[I] TCP connection from %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
 	Com_sprintf(challengeBuffer, 83, "%s%s", challengeHeader, challengeKey);
 	challengeBufferLen = DG_strlen(challengeBuffer);
-	challengeBuffer[challengeBufferLen] = '\0';
-	len = send(socket, challengeBuffer, challengeBufferLen, 0);
+	if (challengeBufferLen)
+	{
+		challengeBuffer[challengeBufferLen] = '\0';
+		len = send(socket, challengeBuffer, challengeBufferLen, 0);
+	}
+	else
+	{
+		len = SOCKET_ERROR;
+	}
 
 	if (len == SOCKET_ERROR)
 	{
@@ -2495,50 +2497,42 @@ retryIncomingTcpList:
 		else /* FS: give up */
 		{
 			Close_TCP_Socket_On_Error(socket, from);
+			Con_DPrintf ("[E] TCP socket error during select from %s:%d (%s)\n",
+				inet_ntoa (from->sin_addr),
+				ntohs(from->sin_port),
+				NET_ErrorString());
 			goto closeTcpSocket;
 		}
 	}
 
-	if (len != SOCKET_ERROR)
+	if (incomingTcpList[0] != 0)
 	{
-		if (incomingTcpList[0] != 0)
-		{
-			Con_DPrintf("[I] Incoming List Request: %s\n", incomingTcpList);
-		}
-		else
-		{
-			Con_DPrintf("[E] Incoming List Request Packet is NULL!\n");
-			goto closeTcpSocket;
-		}
-
-		if (len > 4)
-		{
-			//parse this packet
-			if (strstr(incomingTcpList, "\\list\\") && strstr(incomingTcpList, "\\gamename\\")) /* FS: We must have \\list\\ and \\gamename\\ for this to work */
-			{
-				GameSpy_Parse_List_Request(clientName, incomingTcpList, challengeKey, encodetype, socket, from);
-			}
-			else
-			{
-				Con_DPrintf("[I] Invalid TCP list request from %s:%d.  Sending %s string.\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port), finalstringerror);
-				send(socket, finalstringerror, DG_strlen(finalstringerror), 0);
-			}
-		}
-		else
-		{
-			Con_DPrintf ("[W] runt TCP packet from %s:%d\n", inet_ntoa (from->sin_addr), ntohs(from->sin_port));
-		}
-
-		//reset for next packet
-		goto closeTcpSocket;
+		Con_DPrintf("[I] Incoming List Request: %s\n", incomingTcpList);
 	}
 	else
 	{
-		Con_DPrintf ("[E] TCP socket error during select from %s:%d (%s)\n",
-			inet_ntoa (from->sin_addr),
-			ntohs(from->sin_port),
-			NET_ErrorString());
+		Con_DPrintf("[E] Incoming List Request Packet is NULL!\n");
+		goto closeTcpSocket;
 	}
+
+	if (len > 4)
+	{
+		//parse this packet
+		if (strstr(incomingTcpList, "\\list\\") && strstr(incomingTcpList, "\\gamename\\")) /* FS: We must have \\list\\ and \\gamename\\ for this to work */
+		{
+			GameSpy_Parse_List_Request(clientName, incomingTcpList, challengeKey, encodetype, socket, from);
+		}
+		else
+		{
+			Con_DPrintf("[I] Invalid TCP list request from %s:%d.  Sending %s string.\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port), finalstringerror);
+			send(socket, finalstringerror, DG_strlen(finalstringerror), 0);
+		}
+	}
+	else
+	{
+		Con_DPrintf ("[W] runt TCP packet from %s:%d\n", inet_ntoa (from->sin_addr), ntohs(from->sin_port));
+	}
+
 closeTcpSocket:
 	//reset for next packet
 	if (clientName)
@@ -2604,10 +2598,7 @@ void Add_Servers_From_List(char *filename)
 
 	if (toEOF <= 0)
 	{
-		if (fileBuffer)
-		{
-			free(fileBuffer);
-		}
+		free(fileBuffer);
 		printf("[E] Cannot read file '%s' into memory!\n", filename);
 		return;
 	}
@@ -2648,10 +2639,7 @@ void Add_Servers_From_List(char *filename)
 		free(gamenameFromHttp);
 	}
 
-	if (fileBuffer)
-	{
-		free(fileBuffer);
-	}
+	free(fileBuffer);
 }
 
 void AddServers_From_List_Execute(char *fileBuffer, char *gamenameFromHttp)
@@ -2938,10 +2926,7 @@ static void Master_DL_List (char *filename)
 	{
 		printf("[E] Cannot read file '%s' into memory!\n", filename);
 
-		if (fileBuffer)
-		{
-			free(fileBuffer);
-		}
+		free(fileBuffer);
 		return;
 	}
 
@@ -2952,10 +2937,7 @@ static void Master_DL_List (char *filename)
 	listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
 	if (!listToken)
 	{
-		if (fileBuffer)
-		{
-			free(fileBuffer);
-		}
+		free(fileBuffer);
 		return;
 	}
 
@@ -2972,11 +2954,8 @@ static void Master_DL_List (char *filename)
 		DG_strlcpy(ip, listToken, ipStrLen);
 		remoteHost = gethostbyname(ip);
 
-		if (ip)
-		{
-			free(ip);
-			ip = NULL;
-		}
+		free(ip);
+		ip = NULL;
 
 		/* FS: Junk data or doesn't exist. */
 		if (!remoteHost)
@@ -3042,10 +3021,7 @@ static void Master_DL_List (char *filename)
 		free(ip);
 	}
 
-	if (fileBuffer)
-	{
-		free(fileBuffer);
-	}
+	free(fileBuffer);
 }
 
 /* FS: Readapted from HWMQuery by sezero */

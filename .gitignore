@@ -11,6 +11,7 @@
 *.aps
 *.clwbin/
 
+.vs/
 Debug/
 Release/
 out.txt
@@ -20,3 +21,4 @@ gsmaster.exe
 q1servers.txt
 q2servers.txt
 qwservers.txt
+kpservers.txt

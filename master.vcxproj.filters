@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Notes">
+      <UniqueIdentifier>{adf2e501-0459-462f-831d-5679c4fcf48a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{2712a0c3-2f1a-4071-8468-5a44e243c6a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{7dcae798-15f8-474e-b8a2-852dcb423210}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.txt">
+      <Filter>Notes</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="curl_dl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DG_misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dk_essentials.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gamestable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="master.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="osinfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="service.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shared.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="curl_dl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dk_essentials.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="enctype1_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gamestable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gsmalg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="master.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="service.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
