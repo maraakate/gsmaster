@@ -90,6 +90,8 @@ void signal_handler(int sig);
 #define MAX_GSPY_MTU_SIZE 1022
 #define GSPY_BUFFER_GROWBY_SIZE 511
 
+#define GSPY_DB_VERSION 1
+
 typedef struct server_s server_t;
 
 typedef enum {waiting, inuse} pingstate;

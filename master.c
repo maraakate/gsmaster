@@ -3206,8 +3206,9 @@ void GenerateMasterDBBlob (void)
 	server_t *server = &servers;
 	unsigned char *buff;
 	unsigned short temp;
+	static const unsigned short version = GSPY_DB_VERSION;
 	size_t buflen = 0;
-	size_t maxsize = 8 * numservers;
+	size_t maxsize = (8 * numservers) + 2; /* FS: 6+2 for IP and port.  2 for version number. */
 
 	dbFile = fopen("gsmaster.db", "wb");
 	if (!dbFile)
@@ -3223,6 +3224,9 @@ void GenerateMasterDBBlob (void)
 		fclose(dbFile);
 		return;
 	}
+
+	memcpy(buff + buflen, &version, 2);
+	buflen += 2;
 
 	while (server->next)
 	{
@@ -3255,6 +3259,7 @@ void ReadMasterDBBlob (void)
 	char ip[128];
 	unsigned short port;
 	unsigned short game;
+	unsigned short version;
 	struct in_addr addr;
 	struct sockaddr_in from;
 	struct hostent *remoteHost;
@@ -3278,6 +3283,15 @@ void ReadMasterDBBlob (void)
 	fileSize = ftell(dbFile);
 	fseek(dbFile, 0, SEEK_SET);
 	rewind(dbFile);
+
+	fread(&version, 2, 1, dbFile);
+	if (version != GSPY_DB_VERSION)
+	{
+		Con_DPrintf("[E] Invalid version number for database!  Returned %u expected %d.\n", version, GSPY_DB_VERSION);
+		free(buff);
+		fclose(dbFile);
+		return;
+	}
 
 	while (fileSizeParsed < fileSize)
 	{
