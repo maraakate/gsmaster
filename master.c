@@ -321,7 +321,6 @@ static void Log_Sucessful_TCP_Connections(char *logbuffer)
 	}
 
 	fflush(f);
-
 	fclose(f);
 }
 
@@ -360,17 +359,24 @@ static void NET_Init (void)
 {
 #ifdef _WIN32
 	// overhead to tell Windows we're using TCP/IP.
-	int err = WSAStartup ((WORD)MAKEWORD (1,1), &ws);
+	int err = WSAStartup ((WORD)MAKEWORD (2,2), &ws);
 	if (err)
 	{
 		printf("Error loading Windows Sockets! Error: %d\n",err);
-//		return;
 		exit(err);
 	}
 	else
 	{
 		printf("[I] Winsock Initialized\n");
 	}
+
+	if (LOBYTE(ws.wVersion) != 2 || HIBYTE(ws.wHighVersion != 2))
+	{
+		printf("Could not find a usable version of Winsock.dll\n");
+		WSACleanup();
+		exit(1);
+	}
+
 #elif __DJGPP__
 	int i;
 	int err;
