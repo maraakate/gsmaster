@@ -84,5 +84,30 @@ unsigned short GameSpy_Get_MOTD_Port (char *gamename)
 
 		x++;
 	}
+
 	return 0;
+}
+
+unsigned short GameSpy_Get_Table_Number (char *gamename)
+{
+	unsigned short x = 0;
+
+	if (!gamename || gamename[0] == 0)
+	{
+		return 0;
+	}
+
+	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
+
+	while (gameTable[x].gamename != NULL)
+	{
+		if (!strcmp(gamename, gameTable[x].gamename))
+		{
+			return x;
+		}
+
+		x++;
+	}
+
+	return 65535;
 }

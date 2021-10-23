@@ -181,6 +181,8 @@ static void HTTP_DL_List(void);
 static void Master_DL_List(char *filename);
 static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size);
 static void GenerateServersList (void);
+static void GenerateMasterDBBlob (void);
+static void ReadMasterDBBlob (void);
 
 static const char *GetValidationRequiredString (void)
 {
@@ -370,13 +372,12 @@ static void NET_Init (void)
 		printf("[I] Winsock Initialized\n");
 	}
 
-	if (LOBYTE(ws.wVersion) != 2 || HIBYTE(ws.wHighVersion != 2))
+	if (LOBYTE(ws.wVersion) != 2 || HIBYTE(ws.wHighVersion) != 2)
 	{
 		printf("Could not find a usable version of Winsock.dll\n");
 		WSACleanup();
 		exit(1);
 	}
-
 #elif __DJGPP__
 	int i;
 	int err;
@@ -397,7 +398,7 @@ static void NET_Init (void)
 		printf("[I] WATTCP Initialized\n");
 	}
 #else
-return;
+	return;
 #endif
 }
 
@@ -528,6 +529,7 @@ int gsmaster_main (int argc, char **argv)
 	FD_SET(listener, &master);
 	maxConnections = listener + listenerTCP;
 
+	ReadMasterDBBlob();
 	CURL_HTTP_Init();
 	HTTP_DL_List();
 
@@ -637,6 +639,8 @@ int gsmaster_main (int argc, char **argv)
 		msleep(1); /* FS: Don't suck up 100% CPU */
 	}
 
+	GenerateMasterDBBlob();
+
 	WSACleanup();	// Windows Sockets cleanup
 	runmode = SRV_STOPPED;
 	return 0;
@@ -658,27 +662,21 @@ static __inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_i
 //
 static void ExitNicely (void)
 {
-	server_t	*server = &servers;
-	server_t	*old = NULL;
+	server_t	*server;
+	server_t	*next = NULL;
 	
 	printf ("[I] shutting down.\n");
-	
-	while (server->next)
-	{
-		if (old)
-		{
-			free (old);
-		}
 
-		server = server->next;
-		old = server;
-	}
-	
-	if (old)
+	/* FS: FIXME: Have to skip over the first one since this one is allocated as blank at startup. */
+	for (server = servers.next; server; server = next)
 	{
-		free (old);
+		next = server->next;
+
+		free(server);
+		server = NULL;
 	}
 
+	servers.next = NULL;
 	CURL_HTTP_Shutdown();
 }
 
@@ -743,8 +741,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 			//already exists - could be a pending shutdown (ie killserver, change of map, etc)
 			if (server->shutdown_issued)
 			{
-				Con_DPrintf ("[I] scheduled shutdown server %s sent another ping!\n",
-					inet_ntoa(from->sin_addr));
+				Con_DPrintf ("[I] scheduled shutdown server %s sent another ping!\n", inet_ntoa(from->sin_addr));
 				DropServer (server);
 				server = &servers;
 
@@ -757,9 +754,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 			}
 			else
 			{
-				Con_DPrintf ("[W] dupe ping from %s:%u!! ignored.\n",
-					inet_ntoa (server->ip.sin_addr),
-					htons(server->port));
+				Con_DPrintf ("[W] dupe ping from %s:%u!! ignored.\n", inet_ntoa (server->ip.sin_addr), htons(server->port));
 				return;
 			}
 		}
@@ -849,7 +844,9 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	if (stricmp(server->hostnameIp, "maraakate.org") != 0
 		&& stricmp(server->hostnameIp, "172.86.181.38") != 0
 		&& stricmp(server->hostnameIp, "127.0.0.1") != 0) /* FS: FIXME: maraakate.org hack */
+	{
 		sendto (listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
+	}
 }
 
 //
@@ -1284,7 +1281,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	}
 	else
 	{
-		if (encType != GAMESPY_ENCTYPE1) /* FS: This COULD be added to enctype1 and it will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
+		if (encType != GAMESPY_ENCTYPE1) /* FS: This COULD be added to enctype1 and GS3D will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
 		{
 			if (buflen + 7 >= MAX_GSPY_MTU_SIZE)
 			{
@@ -3201,4 +3198,115 @@ void GenerateServersList (void)
 		fclose(listFile);
 		i++;
 	}
+}
+
+void GenerateMasterDBBlob (void)
+{
+	FILE *dbFile;
+	server_t *server = &servers;
+	unsigned char *buff;
+	unsigned short temp;
+	size_t buflen = 0;
+	size_t maxsize = 8 * numservers;
+
+	dbFile = fopen("gsmaster.db", "wb");
+	if (!dbFile)
+	{
+		Con_DPrintf("[E] Failed to open gsmaster.db for writing!\n");
+		return;
+	}
+
+	buff = calloc(1, maxsize); // 6 bytes for game server ip and port, 2 byte for the gamename
+	if (!buff)
+	{
+		Con_DPrintf("[E] Failed to allocate temporary buffer for database!\n");
+		fclose(dbFile);
+		return;
+	}
+
+	while (server->next)
+	{
+		server = server->next;
+
+		memcpy(buff + buflen, &server->ip.sin_addr, 4);
+		buflen += 4;
+
+		memcpy(buff + buflen, &server->port, 2);
+		buflen += 2;
+
+		temp = GameSpy_Get_Table_Number(server->gamename);
+		memcpy(buff + buflen, &temp, 2);
+		buflen += 2;
+	}
+
+	fwrite((unsigned char *)buff, buflen, 1, dbFile);
+	fflush(dbFile);
+	fclose(dbFile);
+	free(buff);
+}
+
+void ReadMasterDBBlob (void)
+{
+	FILE *dbFile;
+	long fileSize;
+	long fileSizeParsed = 0;
+	unsigned char *buff;
+	char gamename[128];
+	char ip[128];
+	unsigned short port;
+	unsigned short game;
+	struct in_addr addr;
+	struct sockaddr_in from;
+	struct hostent *remoteHost;
+
+	dbFile = fopen("gsmaster.db", "rb");
+	if (!dbFile)
+	{
+		Con_DPrintf("[E] Failed to open gsmaster.db for reading!\n");
+		return;
+	}
+
+	buff = calloc(1, (6) * sizeof(unsigned char));
+	if (!buff)
+	{
+		Con_DPrintf("[E] Failed to allocate temporary buffer for database!\n");
+		fclose(dbFile);
+		return;
+	}
+
+	fseek(dbFile, 0, SEEK_END);
+	fileSize = ftell(dbFile);
+	fseek(dbFile, 0, SEEK_SET);
+	rewind(dbFile);
+
+	while (fileSizeParsed < fileSize)
+	{
+		fread(buff, 6, 1, dbFile);
+		fileSizeParsed += 6;
+		port = ntohs (buff[4] + (buff[5] << 8));
+		Com_sprintf(ip, sizeof(ip), "%u.%u.%u.%u", buff[0], buff[1], buff[2], buff[3]);
+
+		remoteHost = gethostbyname(ip);
+		if (!remoteHost) /* FS: Junk data or doesn't exist. */
+		{
+			Con_DPrintf("[E] Parse_UDP_MS_List: Could not resolve ip: %s.  Skipping!\n", ip);
+			fread(&game, 2, 1, dbFile);
+			fileSizeParsed += 2;
+			continue;
+		}
+
+		addr.s_addr = *(u_long *)remoteHost->h_addr_list[0];
+		fread(&game, 2, 1, dbFile);
+		fileSizeParsed += 2;
+
+		DG_strlcpy(gamename, gameTable[game].gamename, sizeof(gamename));
+
+		memset(&from, 0, sizeof(from));
+		from.sin_addr.s_addr = addr.s_addr;
+		from.sin_family = AF_INET;
+		from.sin_port = htons(port);
+		AddServer(&from, 0, htons(port), gamename, ip);
+	}
+
+	free(buff);
 }
