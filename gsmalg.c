@@ -95,48 +95,48 @@ static const unsigned char enctype1_data[] = /* pre-built */
 		"\x45\xa9\xbb\x06\xb8\x88\x14\x24\xa9\x00\x14\xcb\x24\x12\xae\xcc"
 		"\x57\x56\xee\xfd\x08\x30\xd9\xfd\x8b\x3e\x0a\x84\x46\xfa\x77\xb8";
 
-static unsigned char gsvalfunc(int reg)
+static unsigned char gsvalfunc (int reg)
 {
-	if(reg < 26)
+	if (reg < 26)
 		return(reg + 'A');
-	if(reg < 52)
+	if (reg < 52)
 		return(reg + 'G');
-	if(reg < 62)
+	if (reg < 62)
 		return(reg - 4);
-	if(reg == 62)
+	if (reg == 62)
 		return('+');
-	if(reg == 63)
+	if (reg == 63)
 		return('/');
 
 	return(0);
 }
 
-unsigned char *gsseckey(unsigned char *dst, unsigned char *src, unsigned char *key, int enctype)
+unsigned char *gsseckey (unsigned char *dst, unsigned char *src, unsigned char *key, int enctype)
 {
 	size_t i, size, keysz;
 	unsigned char enctmp[256], tmp[66], x, y, z, a, b, *p;
 
-	if(!dst)
+	if (!dst)
 	{
 		dst = (unsigned char *)malloc(89);
-		if(!dst)
+		if (!dst)
 			return(NULL);
 	}
 	size = strlen((const char *)src);
-	if((size < 1) || (size > 65))
+	if ((size < 1) || (size > 65))
 	{
 		dst[0] = 0;
 		return(dst);
 	}
 	keysz = strlen((const char *)key);
 
-	for(i = 0; i < 256; i++)
+	for (i = 0; i < 256; i++)
 	{
 		enctmp[i] = i;
 	}
 
 	a = 0;
-	for(i = 0; i < 256; i++)
+	for (i = 0; i < 256; i++)
 	{
 		a += enctmp[i] + key[i % keysz];
 		x = enctmp[a];
@@ -146,7 +146,7 @@ unsigned char *gsseckey(unsigned char *dst, unsigned char *src, unsigned char *k
 
 	a = 0;
 	b = 0;
-	for(i = 0; src[i]; i++)
+	for (i = 0; src[i]; i++)
 	{
 		a += src[i] + 1;
 		x = enctmp[a];
@@ -156,28 +156,28 @@ unsigned char *gsseckey(unsigned char *dst, unsigned char *src, unsigned char *k
 		enctmp[a] = y;
 		tmp[i] = src[i] ^ enctmp[(x + y) & 0xff];
 	}
-	for(size = i; size % 3; size++)
+	for (size = i; size % 3; size++)
 	{
 		tmp[size] = 0;
 	}
 
-	if(enctype == 1)
+	if (enctype == 1)
 	{
-		for(i = 0; i < size; i++)
+		for (i = 0; i < size; i++)
 		{
 			tmp[i] = enctype1_data[tmp[i]];
 		}
 	}
-	else if(enctype == 2)
+	else if (enctype == 2)
 	{
-		for(i = 0; i < size; i++)
+		for (i = 0; i < size; i++)
 		{
 			tmp[i] ^= key[i % keysz];
 		}
 	}
 
 	p = dst;
-	for(i = 0; i < size; i += 3)
+	for (i = 0; i < size; i += 3)
 	{
 		x = tmp[i];
 		y = tmp[i + 1];

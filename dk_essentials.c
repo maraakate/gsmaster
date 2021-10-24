@@ -25,20 +25,20 @@
 #define DG_MISC_IMPLEMENTATION /* FS: Caedes special string safe stuff */
 #include "dk_essentials.h"
 
-void Com_sprintf( char *dest, size_t size, const char *fmt, ... )
+void Com_sprintf (char *dest, size_t size, const char *fmt, ...)
 {
 	// DG: implement this with vsnprintf() instead of a big buffer etc
 	va_list	argptr;
 
-	va_start(argptr,fmt);
-//	vsprintf(dest, fmt, argptr);
+	va_start(argptr, fmt);
+	//	vsprintf(dest, fmt, argptr);
 	DK_vsnprintf(dest, size, fmt, argptr);
 	// TODO: print warning if cut off!
 	va_end(argptr);
 }
 
 static char	timestampMsg[MAXPRINTMSG];
-char *Con_Timestamp (char *msg)
+char *Con_Timestamp (const char *msg)
 {
 	/* FS: Timestamp code */
 	struct tm *local;
@@ -46,14 +46,14 @@ char *Con_Timestamp (char *msg)
 	const char *timefmt;
 	char st[80];
 
-	utc = time (NULL);
-	local = localtime (&utc);
+	utc = time(NULL);
+	local = localtime(&utc);
 	if (timestamp > 1)
 		timefmt = "[%m/%d/%y @ %H:%M:%S %p] ";
 	else
 		timefmt = "[%m/%d/%y @ %I:%M:%S %p] ";
-	strftime (st, sizeof (st), timefmt, local);
-	Com_sprintf(timestampMsg,sizeof(timestampMsg), "%s%s", st, msg);
+	strftime(st, sizeof (st), timefmt, local);
+	Com_sprintf(timestampMsg, sizeof(timestampMsg), "%s%s", st, msg);
 
 	return timestampMsg;
 }
@@ -66,10 +66,10 @@ void Con_DPrintf (const char *fmt, ...)
 	if (!debug)	// don't confuse non-developers with techie stuff...
 		return;
 
-	va_start (argptr,fmt);
-//	vsprintf (msg,fmt,argptr);
+	va_start(argptr, fmt);
+	//	vsprintf(msg,fmt,argptr);
 	DK_vsnprintf(msg, sizeof(msg), fmt, argptr);	// Knightmare 10/28/12- buffer-safe version
-	va_end (argptr);
+	va_end(argptr);
 
 	if (timestamp)
 		printf("%s", Con_Timestamp(msg));
@@ -124,13 +124,13 @@ cont:
 }
 
 /* FS: From Quake 2 */
-char *Info_ValueForKey(const char *s, const char *key)
+char *Info_ValueForKey (const char *s, const char *key)
 {
 	char	pkey[MAX_INFO_STRING];
 	static	char value[2][MAX_INFO_STRING];	// use two buffers so compares
-								// work without stomping on each other
+											// work without stomping on each other
 	static	int	valueindex;
-	char	*o;
+	char *o;
 
 	valueindex ^= 1;
 	if (*s == '\\')
@@ -159,7 +159,7 @@ char *Info_ValueForKey(const char *s, const char *key)
 		}
 		*o = 0;
 
-		if (!strcmp (key, pkey) )
+		if (!strcmp (key, pkey))
 		{
 			return value[valueindex];
 		}
@@ -172,13 +172,13 @@ char *Info_ValueForKey(const char *s, const char *key)
 	}
 }
 
-void GameSpy_Create_Challenge_Key(char *s, const size_t len)
+void GameSpy_Create_Challenge_Key (char *s, const size_t len)
 {
 	size_t i;
 	static const char challengeKey[] =
-	"abcdefghijklmnopqrstuvwxyz"
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	"0123456789";
+		"abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"0123456789";
 
 	for (i = 0; i < len; ++i)
 	{
@@ -191,7 +191,7 @@ void GameSpy_Create_Challenge_Key(char *s, const size_t len)
 /* FS: Some compilers might not have this, from the solaris system file in Quake 2 */
 char *DK_strlwr (char *s)
 {
-	char* ret = s;
+	char *ret = s;
 
 	while (*s)
 	{
@@ -219,7 +219,7 @@ void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp
 				break;
 		}
 
-		memcpy (line, text, i);
+		memcpy(line, text, i);
 		line[i] = 0;
 
 		// delete the text from the command buffer and move remaining commands down
@@ -227,12 +227,14 @@ void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp
 		// beginning of the text buffer
 
 		if (i == fileSize)
+		{
 			fileSize = 0;
+		}
 		else
 		{
 			i++;
 			fileSize -= i;
-			memmove (text, text + i, fileSize);
+			memmove(text, text + i, fileSize);
 		}
 
 		// execute the command line

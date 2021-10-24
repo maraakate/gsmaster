@@ -6,8 +6,8 @@
 #include <winsock2.h>
 
 #define PORTREUSE SO_REUSEADDR
-void SetGSMasterRegKey(const char* name, const char *value);
-void GetGSMasterRegKey(const char* name, const char *value);
+void SetGSMasterRegKey (const char* name, const char *value);
+void GetGSMasterRegKey (const char* name, const char *value);
 typedef int socklen_t;
 #define selectsocket(x, y, z, a, b) select((int)x, y, z, a, b) /* FS: nfds is fake on Windows.  Cast it to int so x64 VS2005 shuts up */
 
@@ -108,11 +108,11 @@ struct server_s
 	unsigned char	shutdown_issued;
 	bool		validated;
 	char	gamename[MAX_GAMENAME_LEN];
-	char	challengeKey[64]; /* FS: Needed for GameSpy encode type 0 validation */
+	char	challengeKey[64]; /* FS: Needed for GameSpy validation */
 	char	hostnameIp[MAX_DNS_NAMELEN+1];
 };
 
-void ParseCommandLine(int argc, char *argv[]);
-void Add_Servers_From_List(char *filename);
+void ParseCommandLine (int argc, char **argv);
+void Add_Servers_From_List (char *filename);
 
 #endif /* MASTER_H */

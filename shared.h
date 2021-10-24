@@ -83,14 +83,14 @@ extern int timestamp;
 // Knightmare 05/27/12- buffer-safe variant of vsprintf
 // This may be different on different platforms, so it's abstracted
 #ifdef _MSC_VER	// _WIN32
-//#define DK_vsnprintf _vsnprintf	
+//#define DK_vsnprintf _vsnprintf
 __inline int DK_vsnprintf (char *Dest, size_t Count, const char *Format, va_list Args) {
 	int ret = _vsnprintf(Dest, Count, Format, Args);
 	Dest[Count-1] = 0;	// null terminate
 	return ret;
 }
 #else
-#define DK_vsnprintf vsnprintf	
+#define DK_vsnprintf vsnprintf
 #endif // _MSC_VER
 
 #endif // SHARED_H
