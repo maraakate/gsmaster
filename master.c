@@ -2213,6 +2213,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 	char *gamename = NULL;
 	char *ret = NULL;
 	char logBuffer[2048];
+	char *queryPtr;
 	bool uncompressed = false;
 
 	if (!querystring || !strstr(querystring, "\\list\\") || !strstr(querystring, "\\gamename\\"))
@@ -2229,7 +2230,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 		}
 
 		ret += 19;
-		gamename = ret;
+		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
 		uncompressed = false;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
@@ -2249,7 +2250,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 		}
 
 		ret += 10;
-		gamename = ret;
+		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
 		uncompressed = true;
 		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
 	}
