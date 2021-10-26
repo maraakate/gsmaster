@@ -560,6 +560,8 @@ BOOL WINAPI ControlHandler (DWORD dwCtrlType)
 {
     switch (dwCtrlType)
     {
+        case CTRL_SHUTDOWN_EVENT:
+        case CTRL_CLOSE_EVENT:
         case CTRL_BREAK_EVENT:  // use Ctrl+C or Ctrl+Break to simulate 
         case CTRL_C_EVENT:      // SERVICE_CONTROL_STOP in debug mode 
             _tprintf(TEXT("Stopping %s.\n"), TEXT(SZSERVICEDISPLAYNAME));
