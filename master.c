@@ -1791,7 +1791,7 @@ void ParseCommandLine (int argc, char **argv)
 			bHttpEnable = true;
 		}
 #ifdef _MSC_VER /* FS: Not on mingw. */
-		else if(!strnicmp(argv[i] + 1, "minidumpautogen", 10))
+		else if(!strnicmp(argv[i] + 1, "minidumpautogen", 15))
 		{
 			bMinidumpAutogen = true;
 		}
