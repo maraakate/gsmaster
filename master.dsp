@@ -152,6 +152,10 @@ SOURCE=.\service.c
 
 SOURCE=.\enctype1_helper.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\exception_handler.c
+# End Source File
 # End Group
 # End Target
 # End Project

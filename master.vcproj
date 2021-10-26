@@ -498,6 +498,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\exception_handler.c"
+				>
+			</File>
+			<File
 				RelativePath="gamestable.c"
 				>
 				<FileConfiguration

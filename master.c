@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2015-2018 Frank Sapone
+* Copyright (C) 2015-2021 Frank Sapone
 * Copyright (C) 2002-2003 r1ch.net
 *
 * This program is free software; you can redistribute it and/or
@@ -47,6 +47,9 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 // for debugging as a console application in Windows or in Linux
 int debug;
 int timestamp;
+#ifdef _MSC_VER /* FS: Not on mingw. */
+bool bMinidumpAutogen;
+#endif
 static bool bSendAck;
 static bool bHttpEnable;
 static unsigned long numservers;	// global count of the currently listed servers
@@ -454,7 +457,7 @@ int gsmaster_main (int argc, char **argv)
 	/* FS: Ensure we don't set the ports to something stupid or have corrupt registry values */
 	Check_Port_Boundaries();
 
-	listenaddress.sin_addr.s_addr = inet_addr(bind_ip); 
+	listenaddress.sin_addr.s_addr = inet_addr(bind_ip);
 	listenaddress.sin_family = AF_INET;
 	listenaddress.sin_port = htons((unsigned short)atoi(bind_port));
 
@@ -468,8 +471,8 @@ int gsmaster_main (int argc, char **argv)
 		printf("[E] Couldn't bind to port %s UDP (something is probably using it)\n", bind_port);
 		return 1;
 	}
-	
-	listenaddressTCP.sin_addr.s_addr = inet_addr(bind_ip); 
+
+	listenaddressTCP.sin_addr.s_addr = inet_addr(bind_ip);
 	listenaddressTCP.sin_family = AF_INET;
 	listenaddressTCP.sin_port = htons((unsigned short)atoi(bind_port_tcp));
 
@@ -495,12 +498,12 @@ int gsmaster_main (int argc, char **argv)
 
 	FD_ZERO(&set);
 	FD_SET(listener, &set);
-	
+
 	fromlen = (unsigned)sizeof(from);
 	printf("listening on %s:%s (UDP)\n", bind_ip, bind_port);
 	printf("listening on %s:%s (TCP)\n", bind_ip, bind_port_tcp);
 	runmode = SRV_RUN; // set loop control
-	
+
 #ifndef WIN32
 	#ifndef __DJGPP__
 	// in Linux or BSD we fork a daemon
@@ -511,7 +514,7 @@ int gsmaster_main (int argc, char **argv)
 		debug = 1;
 	}
 	#endif // __DJGPP__
-	
+
 	if (!debug)
 	{
 #ifndef __DJGPP__
@@ -589,9 +592,9 @@ int gsmaster_main (int argc, char **argv)
 						}
 						else
 						{
-							Con_DPrintf("[E] UDP socket error during select from %s:%d (%s)\n", 
-								inet_ntoa(from.sin_addr), 
-								ntohs(from.sin_port), 
+							Con_DPrintf("[E] UDP socket error during select from %s:%d (%s)\n",
+								inet_ntoa(from.sin_addr),
+								ntohs(from.sin_port),
 								NET_ErrorString());
 						}
 					}
@@ -664,7 +667,7 @@ static void ExitNicely (void)
 {
 	server_t	*server;
 	server_t	*next = NULL;
-	
+
 	printf("[I] shutting down.\n");
 
 	/* FS: FIXME: Have to skip over the first one since this one is allocated as blank at startup. */
@@ -857,7 +860,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 {
 	server_t	*server = &servers;
-	
+
 	if (!myserver)
 	{
 		while (server->next)
@@ -871,7 +874,7 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 			}
 		}
 	}
-	
+
 	if (myserver)
 	{
 		struct sockaddr_in addr;
@@ -946,9 +949,9 @@ static void RunFrame (void)
 		if (curtime - server->last_heartbeat > 60)
 		{
 			server_t *old = server;
-			
+
 			server = old->prev;
-			
+
 			if (old->shutdown_issued || old->queued_pings > 6)
 			{
 				Con_DPrintf("[I] %s:%u shut down.\n", inet_ntoa(old->ip.sin_addr), htons(old->port));
@@ -1390,7 +1393,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 static void Ack (struct sockaddr_in *from, char* dataPacket)
 {
 	server_t	*server = &servers;
-	
+
 	//iterate through known servers
 	while (server->next)
 	{
@@ -1567,7 +1570,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	{
 		line++;
 	}
-		
+
 	*(line++) = '\0';
 
 	if (strstr(data, OOB_SEQ)) /* FS: GameSpy doesn't send the 0xFF out-of-band. */
@@ -1680,13 +1683,13 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 void ParseCommandLine (int argc, char **argv)
 {
 	int i = 0;
-	
+
 	if (argc >= 2)
 	{
 		debug = 3; //initializing
 	}
 
-	for (i = 1; i < argc; i++) 
+	for (i = 1; i < argc; i++)
 	{
 		if (debug == 3)
 		{
@@ -1787,6 +1790,12 @@ void ParseCommandLine (int argc, char **argv)
 		{
 			bHttpEnable = true;
 		}
+#ifdef _MSC_VER /* FS: Not on mingw. */
+		else if(!strnicmp(argv[i] + 1, "minidumpautogen", 10))
+		{
+			bMinidumpAutogen = true;
+		}
+#endif
 		else if (!strnicmp(argv[i] + 1, "rconpassword", 12))
 		{
 			DG_strlcpy(rconPassword, argv[i+1], sizeof(rconPassword));
@@ -1930,7 +1939,7 @@ void ServiceCtrlHandler (DWORD Opcode)
 	switch (Opcode)
 	{
 		case SERVICE_CONTROL_STOP:
-			// Kill the server loop. 
+			// Kill the server loop.
 			runmode = SRV_STOP; // zero the loop control
 
 			while (runmode == SRV_STOP)	//give loop time to die
@@ -1960,21 +1969,21 @@ void ServiceCtrlHandler (DWORD Opcode)
 
 			return;
 	}
-	// Send current status. 
+	// Send current status.
 	SetServiceStatus (MyServiceStatusHandle, &MyServiceStatus);
 }
 
-void ServiceStart (DWORD argc, LPTSTR *argv) 
+void ServiceStart (DWORD argc, LPTSTR *argv)
 {
 	ParseCommandLine(argc, argv); // we call it here and in gsmaster_main
 
-	MyServiceStatus.dwServiceType        = SERVICE_WIN32; 
-	MyServiceStatus.dwCurrentState       = SERVICE_START_PENDING; 
-	MyServiceStatus.dwControlsAccepted   = SERVICE_ACCEPT_STOP; 
-	MyServiceStatus.dwWin32ExitCode      = 0; 
-	MyServiceStatus.dwServiceSpecificExitCode = 0; 
-	MyServiceStatus.dwCheckPoint         = 0; 
-	MyServiceStatus.dwWaitHint           = 0; 
+	MyServiceStatus.dwServiceType        = SERVICE_WIN32;
+	MyServiceStatus.dwCurrentState       = SERVICE_START_PENDING;
+	MyServiceStatus.dwControlsAccepted   = SERVICE_ACCEPT_STOP;
+	MyServiceStatus.dwWin32ExitCode      = 0;
+	MyServiceStatus.dwServiceSpecificExitCode = 0;
+	MyServiceStatus.dwCheckPoint         = 0;
+	MyServiceStatus.dwWaitHint           = 0;
 
 	MyServiceStatusHandle = (SERVICE_STATUS_HANDLE)0;
 
@@ -1989,12 +1998,12 @@ void ServiceStart (DWORD argc, LPTSTR *argv)
 			return;
 		}
 	}
-	
-	// Initialization complete - report running status. 
-	MyServiceStatus.dwCurrentState       = SERVICE_RUNNING; 
+
+	// Initialization complete - report running status.
+	MyServiceStatus.dwCurrentState       = SERVICE_RUNNING;
 	MyServiceStatus.dwCheckPoint         = 0;  //-V1048
 	MyServiceStatus.dwWaitHint           = 0;  //-V1048
-	
+
 	if (!debug)
 	{
 		SetServiceStatus(MyServiceStatusHandle, &MyServiceStatus);
@@ -2008,7 +2017,7 @@ void ServiceStop (void)
 	ServiceCtrlHandler(SERVICE_CONTROL_STOP);
 }
 
-/* 
+/*
 * This sets the registry keys in "HKLM/Software/Q2MasterServer" so we can tell
 * the service what IP address or port to bind to when starting up. If it's not preset
 * the service will bind to 0.0.0.0:27900. Not critical on most Windows boxes
@@ -2021,8 +2030,8 @@ void SetGSMasterRegKey (const char* name, const char *value)
 	HKEY	hKey;
 	DWORD	Disposition;
 	LRESULT	status;
-	
-	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, 
+
+	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE,
 		REGKEY_GSMASTERSERVER,
 		0, //always 0
 		NULL,
@@ -2035,20 +2044,20 @@ void SetGSMasterRegKey (const char* name, const char *value)
 	{
 		Con_DPrintf("Error creating registry key for %s\n", SZSERVICEDISPLAYNAME);
 	}
-	
+
 	status = RegSetValueEx(hKey, name, 0, REG_SZ, (unsigned char*)value, (DWORD)DG_strlen(value));
 	if (status)
 	{
 		Con_DPrintf("Registry key not set for IP: %s\n", bind_ip);
 	}
-	
+
 	RegCloseKey(hKey);
 }
 
 //
 // As as Service, get the key and use the IP address stored there.
 // If the key doesn't exist, it will be created.
-// The user can add the Bind_IP or Bind_Port value 
+// The user can add the Bind_IP or Bind_Port value
 // by hand or use the -ip x.x.x.x command line switch.
 //
 void GetGSMasterRegKey (const char* name, const char *value)
@@ -2057,9 +2066,9 @@ void GetGSMasterRegKey (const char* name, const char *value)
 	DWORD	Disposition;
 	LRESULT	status;
 	DWORD	size = KEY_LEN;	// expected max size of the bind_ip or bind_port array
-	
+
 	// check value, create it if it doesn't exist
-	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, 
+	status = RegCreateKeyEx(HKEY_LOCAL_MACHINE,
 		REGKEY_GSMASTERSERVER,
 		0, //always 0
 		NULL,
@@ -2072,13 +2081,13 @@ void GetGSMasterRegKey (const char* name, const char *value)
 	{
 		Con_DPrintf("Registry key not found\n");
 	}
-	
+
 	status = RegQueryValueEx(hKey, name, NULL, NULL, (unsigned char*)value, &size);
 	if (status)
 	{
 		Con_DPrintf("Registry value not found %s\\%s\n", REGKEY_GSMASTERSERVER, name);
 	}
-	
+
 	RegCloseKey(hKey);
 }
 

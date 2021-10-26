@@ -64,5 +64,8 @@
     <ClCompile Include="service.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exception_handler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

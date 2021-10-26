@@ -79,6 +79,9 @@ typedef enum {false, true} bool;
 
 extern int debug;
 extern int timestamp;
+#ifdef _MSC_VER /* FS: Not on mingw. */
+extern bool bMinidumpAutogen;
+#endif
 
 // Knightmare 05/27/12- buffer-safe variant of vsprintf
 // This may be different on different platforms, so it's abstracted

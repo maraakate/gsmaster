@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2015-2018 Frank Sapone
+* Copyright (C) 2015-2021 Frank Sapone
 * Copyright (C) 2002-2003 r1ch.net
 *
 * This program is free software; you can redistribute it and/or
@@ -71,6 +71,8 @@ VOID CmdDebugService(int argc, char **argv);
 BOOL WINAPI ControlHandler ( DWORD dwCtrlType );
 LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 
+extern DWORD GSMasterServerExceptionHandler (DWORD exceptionCode, LPEXCEPTION_POINTERS exceptionInfo);
+
 //
 //  FUNCTION: main
 //
@@ -107,54 +109,65 @@ int _CRTAPI1 main (int argc, char **argv)
 		{ NULL, NULL }
 	};
 
+#ifdef _MSC_VER /* FS: Not on mingw. */
+	__try
+#endif
+	{
 #ifdef UNICODE
-	global_lpszArgv = CommandLineToArgvW(GetCommandLineW(), &(dwArgc));
+		global_lpszArgv = CommandLineToArgvW(GetCommandLineW(), &(dwArgc));
 #else
-	global_dwArgc = (DWORD)argc;
-	global_lpszArgv = argv;
+		global_dwArgc = (DWORD)argc;
+		global_lpszArgv = argv;
 #endif
 
-	if ((argc > 1) &&
-		((*argv[1] == '-') || (*argv[1] == '/')))
-	{
-		if (!stricmp("install", argv[1] + 1))
+		if ((argc > 1) &&
+			((*argv[1] == '-') || (*argv[1] == '/')))
 		{
-			CmdInstallService();
+			if (!stricmp("install", argv[1] + 1))
+			{
+				CmdInstallService();
+			}
+			else if (!stricmp("remove", argv[1] + 1))
+			{
+				CmdRemoveService();
+			}
+			else if (!stricmp("debug", argv[1] + 1))
+			{
+				bDebug = TRUE;
+				CmdDebugService(argc, argv);
+			}
+			else if (!stricmp("?", argv[1] + 1) || !stricmp("help", argv[1] + 1))
+			{
+				bDebug = TRUE;
+				CmdDebugService(argc, argv);
+			}
+			else
+			{
+				goto dispatch;
+			}
+			exit(0);
 		}
-		else if (!stricmp("remove", argv[1] + 1))
-		{
-			CmdRemoveService();
-		}
-		else if (!stricmp("debug", argv[1] + 1))
-		{
-			bDebug = TRUE;
-			CmdDebugService(argc, argv);
-		}
-		else if (!stricmp("?", argv[1] + 1) || !stricmp("help", argv[1] + 1))
-		{
-			bDebug = TRUE;
-			CmdDebugService(argc, argv);
-		}
-		else
-		{
-			goto dispatch;
-		}
-		exit(0);
-	}
 
-	// if it doesn't match any of the above parameters
-	// the service control manager may be starting the service
-	// so we must call StartServiceCtrlDispatcher
+		// if it doesn't match any of the above parameters
+		// the service control manager may be starting the service
+		// so we must call StartServiceCtrlDispatcher
 dispatch:
-	// this is just to be friendly
-	printf("%s -install          to install the service\n", SZAPPNAME);
-	printf("%s -remove           to remove the service\n", SZAPPNAME);
-	printf("%s -debug <params>   to run as a console app for debugging\n", SZAPPNAME);
-	printf("\nStartServiceCtrlDispatcher being called.\n");
-	printf("This may take several seconds.  Please wait.\n");
+		// this is just to be friendly
+		printf("%s -install          to install the service\n", SZAPPNAME);
+		printf("%s -remove           to remove the service\n", SZAPPNAME);
+		printf("%s -debug <params>   to run as a console app for debugging\n", SZAPPNAME);
+		printf("\nStartServiceCtrlDispatcher being called.\n");
+		printf("This may take several seconds.  Please wait.\n");
 
-	if (!StartServiceCtrlDispatcher(dispatchTable))
-		AddToMessageLog(TEXT("StartServiceCtrlDispatcher failed."));
+		if (!StartServiceCtrlDispatcher(dispatchTable))
+			AddToMessageLog(TEXT("StartServiceCtrlDispatcher failed."));
+	}
+#ifdef _MSC_VER /* FS: Not on mingw. */
+	__except (GSMasterServerExceptionHandler(GetExceptionCode(), GetExceptionInformation()))
+	{
+		return 1;
+	}
+#endif
 
 	return 0;
 }
@@ -203,7 +216,7 @@ void WINAPI service_main (DWORD dwArgc, LPTSTR *lpszArgv)
 cleanup:
 
 	// try to report the stopped status to the service control manager.
-	// 
+	//
 	if (sshStatusHandle)
 		(VOID)ReportStatusToSCMgr(
 			SERVICE_STOPPED,
@@ -304,7 +317,7 @@ BOOL ReportStatusToSCMgr (DWORD dwCurrentState,
 
 
 		// Report the status of the service to the service control manager.
-		// 
+		//
 		fResult = SetServiceStatus(sshStatusHandle, &ssStatus);
 		if (!fResult)
 		{
@@ -511,7 +524,7 @@ void CmdRemoveService (void)
 //
 //  PURPOSE: Runs the service as a console application
 //
-//  PARAMETERS: 
+//  PARAMETERS:
 //    argc - number of command line arguments
 //    argv - array of command line arguments
 //
@@ -525,12 +538,12 @@ void CmdDebugService (int argc, char **argv)
 	DWORD dwArgc;
 	LPTSTR *lpszArgv;
 
-#ifdef UNICODE 
+#ifdef UNICODE
 	lpszArgv = CommandLineToArgvW(GetCommandLineW(), &(dwArgc));
-#else 
+#else
 	dwArgc = (DWORD)argc;
 	lpszArgv = argv;
-#endif 
+#endif
 
 	_tprintf(TEXT("Debugging %s.\n"), TEXT(SZSERVICEDISPLAYNAME));
 
