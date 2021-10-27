@@ -868,8 +868,8 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
 #ifdef HOSTNAME_AND_LOCALHOST_HACK
-	if (stricmp(server->hostnameIp, HostnameHack) != 0
-		|| stricmp(server->hostnameIp, "127.0.0.1") != 0)
+	if (!stricmp(server->hostnameIp, HostnameHack)
+		|| !stricmp(server->hostnameIp, "127.0.0.1"))
 	{
 		Con_DPrintf("[I] %s and Localhost port clashing hack from AddServer().\n", HostnameHack);
 		bHostnameAndLocalhostHack = true;
