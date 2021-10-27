@@ -1642,6 +1642,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Con_DPrintf("[I] Got a HexenWorld master server list!\n");
 			mslist += sizeof(hw_reply_hdr);
 			Parse_UDP_MS_List(mslist, hexenworld, dglen-sizeof(hw_reply_hdr));
+			return;
 		}
 		else if (!strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) || !strnicmp(data, (char *)qw_reply_hdr2, sizeof(qw_reply_hdr2)-1)) /* FS: Some servers send '\n' others send '\0' so check both. */
 		{
@@ -1659,6 +1660,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			dglen);
 
 			SendUDPServerListToClient(from, "daikatana");
+			return;
 		}
 		else if (!strnicmp(data, OOB_SEQ"query", 9) || !strnicmp(data, OOB_SEQ"getservers", 14))
 		{
