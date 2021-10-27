@@ -653,7 +653,6 @@ int gsmaster_main (int argc, char **argv)
 
 		// destroy old servers, etc
 		RunFrame();
-
 		msleep(1); /* FS: Don't suck up 100% CPU */
 	}
 
@@ -802,6 +801,8 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
 	DG_strlcpy(server->gamename, gamename, sizeof(server->gamename));
+
+	srand((unsigned)time(NULL));
 
 	server->port = queryPort;
 	server->shutdown_issued = 0;
@@ -1002,12 +1003,14 @@ static void RunFrame (void)
 				char validateString[MAX_GSPY_VAL] = {0};
 				size_t validateStringLen = 0;
 
+				srand((unsigned)time(NULL));
+
 				addr.sin_addr = Hostname_to_IP(&server->ip.sin_addr, server->hostnameIp); /* FS: Resolve hostname if it's from a serverlist file */
 				addr.sin_family = AF_INET;
 				addr.sin_port = server->port;
 				memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 				server->queued_pings++;
-				server->last_ping = curtime;
+				server->last_ping = curtime-(rand()%heartbeatInterval); /* FS: Don't ping a bunch of stuff at the same time */
 
 				GameSpy_Create_Challenge_Key(server->challengeKey, 6); /* FS: Challenge key for this server */
 
@@ -1047,7 +1050,7 @@ static void RunFrame (void)
 					Con_DPrintf("[I] %s and Localhost port clashing hack from RunFrame().\n", HostnameHack);
 					server->shutdown_issued = 0;
 					server->queued_pings = 0;
-					server->last_heartbeat = curtime;
+					server->last_heartbeat = curtime-(rand()%heartbeatInterval); /* FS: Don't ping a bunch of stuff at the same time */
 					server->heartbeats++;
 					server->validated = 1;
 					msleep(1);

@@ -180,6 +180,8 @@ void GameSpy_Create_Challenge_Key (char *s, const size_t len)
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"0123456789";
 
+	srand((unsigned)time(NULL));
+
 	for (i = 0; i < len; ++i)
 	{
 		s[i] = challengeKey[rand() % (sizeof(challengeKey) - 1)];
