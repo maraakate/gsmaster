@@ -47,7 +47,7 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 /* FS: IF YOU DON'T NEED THIS DISABLE IT OTHERWISE ADAPT TO YOUR HOSTNAME ACCORDINGLY!
  *     THIS IS INTENDED FOR THOSE THAT RUN DED SERVERS ON THE SAME IP AS THE MASTER SERVER!
  */
-#define HOSTNAME_AND_LOCALHOST_HACK
+//#define HOSTNAME_AND_LOCALHOST_HACK
 #ifdef HOSTNAME_AND_LOCALHOST_HACK
 static const char HostnameHack[] = "Maraakate.org";
 #endif
@@ -117,7 +117,7 @@ static const char finalstring[] = "final\\";
 static const char finalstringerror[] = "\\final\\";
 static const char statusstring[] = "\\status\\secure\\";
 static const char quakeworldquake2statusstring[] = OOB_SEQ "status"; /* FS: QW and Q2 use this */
-static const char quake1querystring[] = "\x80\x00\x00\x0C\x02" "QUAKE"; /* FS: Raw data that's sent down for a "QUAKE" query string */
+static const char quake1querystring[] = "\x80\x00\x00\x0C\x02" "QUAKE" "\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string.  NOTE HAS A TRAILING ZERO! OTHERS DO NOT! */
 static const char hexen2querystring[] = "\x80\x00\x00\x0D\x02" "HEXENII"; /* FS: Raw data that's sent down for a "HEXENII" query string */
 static const char hexenworldstatusstring[] = OOB_SEQ "\xff" "status"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
@@ -2398,7 +2398,7 @@ static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validate
 
 	DG_strlcpy(gameKey,ptr,sizeof(gameKey));
 
-	if (!strcmp(gameKey,"nolf") && rawsecurekey) /* FS: NOLF doesn't respond to \\secure\\ from servers. */
+	if (!strcmp(gameKey,"nolf") && rawsecurekey)
 	{
 		Con_DPrintf("[I] NOLF does not respond to \\secure\\ from servers.  Skipping Validation.\n");
 		return true;
@@ -2522,7 +2522,9 @@ retryIncomingTcpValidate:
 		/* FS: Unofficial nastyness in QDOS, Q2DOS, and DK 1.3 -- So I can see if someone out there is a veteran player who happens to run a game search */
 		clientName = Info_ValueForKey(incomingTcpValidate, "clientname");
 		if (!clientName)
+		{
 			clientName = strdup("Unknown User");
+		}
 		else
 		{
 			clientName = strdup(Info_ValueForKey(incomingTcpValidate, "clientname"));
