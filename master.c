@@ -1641,14 +1641,14 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 		{
 			Con_DPrintf("[I] Got a HexenWorld master server list!\n");
 			mslist += sizeof(hw_reply_hdr);
-			Parse_UDP_MS_List(mslist, hexenworld, dglen-sizeof(q2_reply_hdr));
+			Parse_UDP_MS_List(mslist, hexenworld, dglen-sizeof(hw_reply_hdr));
 		}
-		else if (!strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) || !strnicmp(data, (char *)qw_reply_hdr2, sizeof(qw_reply_hdr2)-1)) /* FS: Some servers send '\n' others send '\0' so ignore the last bit */
+		else if (!strnicmp(data, (char *)qw_reply_hdr, sizeof(qw_reply_hdr)-1) || !strnicmp(data, (char *)qw_reply_hdr2, sizeof(qw_reply_hdr2)-1)) /* FS: Some servers send '\n' others send '\0' so check both. */
 		{
 			Con_DPrintf("[I] Got a QuakeWorld master server list!\n");
 
 			mslist += sizeof(qw_reply_hdr);
-			Parse_UDP_MS_List(mslist, quakeworld, dglen-sizeof(qw_reply_hdr));
+			Parse_UDP_MS_List(mslist, quakeworld, dglen-sizeof(qw_reply_hdr)); /* FS: Length is the same, so doesn't really matter what we pass here. */
 			return;
 		}
 		else if (!strnicmp(data, daikatanagetserversstring, daikatanagetserverslen))
@@ -3131,7 +3131,7 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 
 	/* each address is 4 bytes (ip) + 2 bytes (port) == 6 bytes */
 	if (size % 6 != 0)
-		printf("Warning: not counting truncated last entry\n");
+		printf("Warning: not counting truncated last entry %d\n", size);
 
 	while (size >= 6)
 	{
