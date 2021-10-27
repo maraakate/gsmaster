@@ -1655,6 +1655,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 		inet_ntoa(from->sin_addr), htons(from->sin_port),
 		dglen);
 
+	/* FS: If we got here then it's some GameSpy related stuff. */
 	if (!strnicmp(cmd, "ping", 4))
 	{
 		/* FS: Do nothing, GameSpy doesn't care about this */
