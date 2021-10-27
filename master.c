@@ -58,7 +58,7 @@ int timestamp;
 #ifdef _MSC_VER /* FS: Not on mingw. */
 bool bMinidumpAutogen;
 #endif
-static bool bSendAck;
+static bool bSendGameSpyAck;
 static bool bHttpEnable;
 static unsigned long numservers;	// global count of the currently listed servers
 
@@ -444,7 +444,7 @@ int gsmaster_main (int argc, char **argv)
 #endif
 
 	printf("Debugging mode: %d\n", debug);
-	printf("Send Acknowledgments: %d\n", bSendAck);
+	printf("Send Acknowledgments from GameSpy Heartbeats: %d\n", bSendGameSpyAck);
 	printf("Validate New Server Immediately: %d\n", bValidate_newserver_immediately);
 	printf("Require Validation: %s\n", GetValidationRequiredString());
 	printf("Heartbeat interval: %lu Minutes\n", heartbeatInterval/60);
@@ -835,7 +835,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	addr.sin_port = server->port;
 	memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
-	if (normal && bSendAck) /* FS: This isn't standard for GameSpy, it will show messages about the ack.  This is more a courtesy to tell the ded server that we received the heartbeat */
+	if (normal && bSendGameSpyAck) /* FS: This isn't standard for GameSpy, it will show messages about the ack.  This is more a courtesy to tell the ded server that we received the heartbeat */
 	{
 		sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
 	}
@@ -1488,6 +1488,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	char *cmdToken = NULL;
 	char *cmdPtr = NULL;
 	int statechanged = FALSE;
+	bool bSendAckLegacy = FALSE; /* FS: For QW, HW, and Q2. */
 #ifdef HOSTNAME_AND_LOCALHOST_HACK
 	struct in_addr addr;
 	bool bHostnameAndLocalhostHack = FALSE;
@@ -1498,13 +1499,13 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 		return;
 	}
 
-	if (strstr(data,"\\statechanged\\")) /* FS: Schedule a shutdown if statechanged is sent with heartbeat */
+	if (strstr(data, "\\statechanged\\")) /* FS: Schedule a shutdown if statechanged is sent with heartbeat */
 	{
-		if (strstr(data,"\\statechanged\\1")) /* FS: Map change?  Don't abort */
+		if (strstr(data, "\\statechanged\\" GAMESPY_STATE_UPDATE_STRING)) /* FS: Map change?  Don't abort */
 		{
 			statechanged = FALSE;
 		}
-		else /* FS: If we don't get a key after it or it's >= 2 assume shutdown.  We'll still ping it anyways to verify it's removal */
+		else /* FS: If we don't get a key after it or it's >= 2 assume shutdown.  We'll still ping it anyways to verify it's removal. */
 		{
 			statechanged = TRUE;
 		}
@@ -1568,11 +1569,13 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			{
 				memcpy(validateString, quakeworldquake2statusstring, sizeof(quakeworldquake2statusstring));
 				validateStringLen = sizeof(quakeworldquake2statusstring);
+				bSendAckLegacy = true;
 			}
 			else if (!stricmp(server->gamename, "hexenworld"))
 			{
 				memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
 				validateStringLen = sizeof(hexenworldstatusstring);
+				bSendAckLegacy = true;
 			}
 			else if (!stricmp(server->gamename, "hexen2"))
 			{
@@ -1598,7 +1601,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			{
 				sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy uses the \status\ data for collection in a database so people can see the current stats without having to really ping the server. */
 
-				if (bSendAck) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
+				if (bSendGameSpyAck || bSendAckLegacy) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
 				{
 					sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
 				}
@@ -1832,7 +1835,7 @@ void ParseCommandLine (int argc, char **argv)
 		}
 		else if (!strnicmp(argv[i] + 1, "sendack", 7))
 		{
-			bSendAck = true;
+			bSendGameSpyAck = true;
 		}
 		else if (!strnicmp(argv[i] + 1, "quickvalidate", 13))
 		{

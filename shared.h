@@ -38,6 +38,9 @@ typedef enum {false, true} bool;
 #define GAMESPY_VALIDATION_REQUIRED_SERVERS_ONLY 2
 #define GAMESPY_VALIDATION_REQUIRED_ALL 3
 
+#define GAMESPY_STATE_UPDATE_STRING "1" /* FS: Map or game name change */
+#define GAMESPY_STATE_SHUTDOWN_STRING "2" /* FS: Actually shutting down */
+
 #define LOGTCP_DEFAULTNAME "gspytcp.log"
 
 #ifndef MAX_PATH
