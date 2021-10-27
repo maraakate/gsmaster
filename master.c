@@ -44,7 +44,13 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 #include "dk_essentials.h"
 #include "gamestable.h"
 
-#define MARAAKATE_ORG_AND_LOCALHOST_HACK 1 /* FS: IF YOU DON'T NEED THIS DISABLE IT OTHERWISE ADAPT TO YOUR HOSTNAME ACCORDINGLY! */
+/* FS: IF YOU DON'T NEED THIS DISABLE IT OTHERWISE ADAPT TO YOUR HOSTNAME ACCORDINGLY!
+ *     THIS IS INTENDED FOR THOSE THAT RUN DED SERVERS ON THE SAME IP AS THE MASTER SERVER!
+ */
+#define HOSTNAME_AND_LOCALHOST_HACK
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+static const char HostnameHack[] = "Maraakate.org";
+#endif
 
 // for debugging as a console application in Windows or in Linux
 int debug;
@@ -725,8 +731,8 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	struct sockaddr_in addr;
 	char validateString[MAX_GSPY_VAL] = {0};
 	size_t validateStringLen = 0;
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-	bool bMaraakateOrgHack = FALSE; /* FS: FIXME: Maraakate.org hack */
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+	bool bHostnameAndLocalhostHack = FALSE;
 #endif
 
 	if (!gamename || (gamename[0] == 0))
@@ -861,15 +867,15 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-	if (stricmp(server->hostnameIp, "maraakate.org") != 0
-		|| stricmp(server->hostnameIp, "127.0.0.1") != 0) /* FS: FIXME: maraakate.org hack */
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+	if (stricmp(server->hostnameIp, HostnameHack) != 0
+		|| stricmp(server->hostnameIp, "127.0.0.1") != 0)
 	{
-		Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from AddServer().\n");
-		bMaraakateOrgHack = true;
+		Con_DPrintf("[I] %s and Localhost port clashing hack from AddServer().\n", HostnameHack);
+		bHostnameAndLocalhostHack = true;
 	}
 
-	if (!bMaraakateOrgHack)
+	if (!bHostnameAndLocalhostHack)
 #endif
 	{
 		sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
@@ -909,10 +915,10 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		addr.sin_port = server->port;
 		memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+		if (!stricmp(server->hostnameIp, HostnameHack) || !stricmp(server->hostnameIp, "127.0.0.1"))
 		{
-			Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from QueueShutdown().\n");
+			Con_DPrintf("[I] %s and Localhost port clashing hack from QueueShutdown().\n", HostnameHack);
 			myserver->shutdown_issued = 0;
 			return;
 		}
@@ -1035,11 +1041,10 @@ static void RunFrame (void)
 
 				validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-				/* FS: FIXME: maraakate.org hack */
-				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "127.0.0.1"))
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+				if (!stricmp(server->hostnameIp, HostnameHack) || !stricmp(server->hostnameIp, "127.0.0.1"))
 				{
-					Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from RunFrame().\n");
+					Con_DPrintf("[I] %s and Localhost port clashing hack from RunFrame().\n", HostnameHack);
 					server->shutdown_issued = 0;
 					server->queued_pings = 0;
 					server->last_heartbeat = curtime;
@@ -1480,9 +1485,9 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	char *cmdToken = NULL;
 	char *cmdPtr = NULL;
 	int statechanged = FALSE;
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-	struct in_addr addr; /* FS: FIXME: Maraakate.org hack */
-	bool bMaraakateOrgHack = FALSE;
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+	struct in_addr addr;
+	bool bHostnameAndLocalhostHack = FALSE;
 #endif
 
 	if (!data || data[0] == '\0')
@@ -1520,16 +1525,16 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual gamename\\ */
 
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-	if (!strcmp(inet_ntoa(from->sin_addr), "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+	if (!strcmp(inet_ntoa(from->sin_addr), "127.0.0.1"))
 	{
 		struct hostent *remoteHost;
-		remoteHost = gethostbyname("maraakate.org");
+		remoteHost = gethostbyname(HostnameHack);
 
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 		from->sin_addr.s_addr = addr.s_addr;
-		bMaraakateOrgHack = true;
-		Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from Heartbeat().\n");
+		bHostnameAndLocalhostHack = true;
+		Con_DPrintf("[I] %s and Localhost port clashing hack from Heartbeat().\n", HostnameHack);
 	}
 #endif
 
@@ -1584,8 +1589,8 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 			validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
-			if (!bMaraakateOrgHack) /* FS: FIXME: maraakate.org hack */
+#ifdef HOSTNAME_AND_LOCALHOST_HACK
+			if (!bHostnameAndLocalhostHack)
 #endif
 			{
 				sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy uses the \status\ data for collection in a database so people can see the current stats without having to really ping the server. */
