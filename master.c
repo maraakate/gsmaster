@@ -44,6 +44,8 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 #include "dk_essentials.h"
 #include "gamestable.h"
 
+#define MARAAKATE_ORG_AND_LOCALHOST_HACK 1 /* FS: IF YOU DON'T NEED THIS DISABLE IT OTHERWISE ADAPT TO YOUR HOSTNAME ACCORDINGLY! */
+
 // for debugging as a console application in Windows or in Linux
 int debug;
 int timestamp;
@@ -108,10 +110,17 @@ static const char listheader[] = "\\";
 static const char finalstring[] = "final\\";
 static const char finalstringerror[] = "\\final\\";
 static const char statusstring[] = "\\status\\secure\\";
-static const char quakestatusstring[] = "status"; /* FS: Q1 and QW use this */
-static const char quake1string[] = "\x80\x00\x00\x0C\x02" "QUAKE" "\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string */
-static const char hexenworldstatusstring[] = "\xff\xff\xff\xff\xff" "status"; /* FS: HW wants an extra 0xff */
+static const char quakeworldquake2statusstring[] = OOB_SEQ "status"; /* FS: QW and Q2 use this */
+static const char quake1querystring[] = "\x80\x00\x00\x0C\x02" "QUAKE"; /* FS: Raw data that's sent down for a "QUAKE" query string */
+static const char hexen2querystring[] = "\x80\x00\x00\x0D\x02" "HEXENII"; /* FS: Raw data that's sent down for a "HEXENII" query string */
+static const char hexenworldstatusstring[] = OOB_SEQ "\xff" "status"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
+
+static const char ackstring[] = OOB_SEQ "ack";
+static const int ackstringlen = sizeof(ackstring) - 1;
+
+static const char daikatanagetserversstring[] = OOB_SEQ"getservers daikatana";
+static const int daikatanagetserverslen = sizeof(daikatanagetserversstring) - 1;
 
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
 static char quakeworld[] = "quakeworld";
@@ -716,6 +725,9 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	struct sockaddr_in addr;
 	char validateString[MAX_GSPY_VAL] = {0};
 	size_t validateStringLen = 0;
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
+	bool bMaraakateOrgHack = FALSE; /* FS: FIXME: Maraakate.org hack */
+#endif
 
 	if (!gamename || (gamename[0] == 0))
 	{
@@ -818,36 +830,47 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 
 	if (normal && bSendAck) /* FS: This isn't standard for GameSpy, it will show messages about the ack.  This is more a courtesy to tell the ded server that we received the heartbeat */
 	{
-		sendto(listener, OOB_SEQ"ack", 7, 0, (struct sockaddr *)&addr, sizeof(addr));
+		sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
 	}
 
-	if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2")) /* FS: Quake 2 and QuakeWorld do it differently.  No validation :( */
+	if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2"))
 	{
-		Com_sprintf(validateString, sizeof(validateString), OOB_SEQ"%s", quakestatusstring);
+		memcpy(validateString, quakeworldquake2statusstring, sizeof(quakeworldquake2statusstring));
+		validateStringLen = sizeof(quakeworldquake2statusstring);
 	}
-	else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
+	else if (!stricmp(server->gamename, "hexenworld"))
 	{
 		memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
+		validateStringLen = sizeof(hexenworldstatusstring);
 	}
-	else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
+	else if (!stricmp(server->gamename, "hexen2"))
 	{
-		memcpy(validateString, quake1string, sizeof(quake1string));
+		memcpy(validateString, hexen2querystring, sizeof(hexen2querystring));
+		validateStringLen = sizeof(hexen2querystring);
+	}
+	else if (!stricmp(server->gamename, "quake1"))
+	{
+		memcpy(validateString, quake1querystring, sizeof(quake1querystring));
+		validateStringLen = sizeof(quake1querystring);
 	}
 	else
 	{
 		Com_sprintf(validateString, sizeof(validateString), "%s%s", statusstring, server->challengeKey);
+		validateStringLen = DG_strlen(validateString);
 	}
 
-	if (!stricmp(server->gamename, "quake1"))
-		validateStringLen = sizeof(quake1string);
-	else
-		validateStringLen = DG_strlen(validateString);
+	validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
-	validateString[validateStringLen] = '\0';
-
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
 	if (stricmp(server->hostnameIp, "maraakate.org") != 0
-		&& stricmp(server->hostnameIp, "172.86.181.38") != 0
-		&& stricmp(server->hostnameIp, "127.0.0.1") != 0) /* FS: FIXME: maraakate.org hack */
+		|| stricmp(server->hostnameIp, "127.0.0.1") != 0) /* FS: FIXME: maraakate.org hack */
+	{
+		Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from AddServer().\n");
+		bMaraakateOrgHack = true;
+	}
+
+	if (!bMaraakateOrgHack)
+#endif
 	{
 		sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends this after a heartbeat. */
 	}
@@ -886,12 +909,14 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		addr.sin_port = server->port;
 		memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
-		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38") || !stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
+		if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
 		{
+			Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from QueueShutdown().\n");
 			myserver->shutdown_issued = 0;
 			return;
 		}
-
+#endif
 		//hack, server will be dropped in next minute IF it doesn't respond to our ping
 		myserver->shutdown_issued = 1;
 
@@ -899,27 +924,31 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 
 		Con_DPrintf("[I] shutdown queued %s:%u \n", inet_ntoa(myserver->ip.sin_addr), htons(server->port));
 
-		if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2")) /* FS: Quake 2 and QuakeWorld do it differently.  No validation :( */
+		if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2"))
 		{
-			Com_sprintf(validateString, sizeof(validateString), OOB_SEQ"%s", quakestatusstring);
+			memcpy(validateString, quakeworldquake2statusstring, sizeof(quakeworldquake2statusstring));
+			validateStringLen = sizeof(quakeworldquake2statusstring);
 		}
-		else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
+		else if (!stricmp(server->gamename, "hexenworld"))
 		{
 			memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
+			validateStringLen = sizeof(hexenworldstatusstring);
 		}
-		else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
+		else if (!stricmp(server->gamename, "hexen2"))
 		{
-			memcpy(validateString, quake1string, sizeof(quake1string));
+			memcpy(validateString, hexen2querystring, sizeof(hexen2querystring));
+			validateStringLen = sizeof(hexen2querystring);
+		}
+		else if (!stricmp(server->gamename, "quake1"))
+		{
+			memcpy(validateString, quake1querystring, sizeof(quake1querystring));
+			validateStringLen = sizeof(quake1querystring);
 		}
 		else
 		{
 			Com_sprintf(validateString, sizeof(validateString), "%s%s", statusstring, server->challengeKey);
-		}
-
-		if (!stricmp(server->gamename, "quake1"))
-			validateStringLen = sizeof(quake1string);
-		else
 			validateStringLen = DG_strlen(validateString);
+		}
 
 		validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
@@ -978,34 +1007,39 @@ static void RunFrame (void)
 
 				Con_DPrintf("[I] ping %s(%s):%u\n", server->hostnameIp, inet_ntoa(addr.sin_addr), htons(server->port));
 
-				if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2")) /* FS: Quake 2 and QuakeWorld do it differently.  No validation :( */
+				if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2"))
 				{
-					Com_sprintf(validateString, sizeof(validateString), OOB_SEQ"%s", quakestatusstring);
+					memcpy(validateString, quakeworldquake2statusstring, sizeof(quakeworldquake2statusstring));
+					validateStringLen = sizeof(quakeworldquake2statusstring);
 				}
-				else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
+				else if (!stricmp(server->gamename, "hexenworld"))
 				{
 					memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
+					validateStringLen = sizeof(hexenworldstatusstring);
 				}
-				else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
+				else if (!stricmp(server->gamename, "hexen2"))
 				{
-					memcpy(validateString, quake1string, sizeof(quake1string));
+					memcpy(validateString, hexen2querystring, sizeof(hexen2querystring));
+					validateStringLen = sizeof(hexen2querystring);
+				}
+				else if (!stricmp(server->gamename, "quake1"))
+				{
+					memcpy(validateString, quake1querystring, sizeof(quake1querystring));
+					validateStringLen = sizeof(quake1querystring);
 				}
 				else
 				{
 					Com_sprintf(validateString, sizeof(validateString), "%s%s", statusstring, server->challengeKey);
-				}
-
-				if (!stricmp(server->gamename, "quake1"))
-					validateStringLen = sizeof(quake1string);
-				else
 					validateStringLen = DG_strlen(validateString);
+				}
 
 				validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
 				/* FS: FIXME: maraakate.org hack */
-				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "172.86.181.38") || !stricmp(server->hostnameIp, "127.0.0.1"))
+				if (!stricmp(server->hostnameIp, "maraakate.org") || !stricmp(server->hostnameIp, "127.0.0.1"))
 				{
-					Con_DPrintf("[I] Naraakate.org port clashing hack.\n");
+					Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from RunFrame().\n");
 					server->shutdown_issued = 0;
 					server->queued_pings = 0;
 					server->last_heartbeat = curtime;
@@ -1014,7 +1048,7 @@ static void RunFrame (void)
 					msleep(1);
 					continue;
 				}
-
+#endif
 				sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy sends an Out-of-Band status */
 				msleep(1);
 			}
@@ -1410,7 +1444,12 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 
 			server->last_heartbeat = (unsigned long)time(NULL);
 
-			if (!stricmp(server->gamename, "quake2") || !stricmp(server->gamename, "quakeworld") || !stricmp(server->gamename, "quake1") || !stricmp(server->gamename, "hexenworld")) /* FS: These games are too old to send a challenge back. */
+			/* FS: These games are too old to send a challenge back. */
+			if (!stricmp(server->gamename, "quake2")
+				|| !stricmp(server->gamename, "quakeworld")
+				|| !stricmp(server->gamename, "quake1")
+				|| !stricmp(server->gamename, "hexenworld")
+				|| !stricmp(server->gamename, "hexen2"))
 			{
 				server->validated = 1;
 			}
@@ -1441,8 +1480,10 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	char *cmdToken = NULL;
 	char *cmdPtr = NULL;
 	int statechanged = FALSE;
-	struct in_addr addr; /* FS: FIXME: naraakate.org hack */
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
+	struct in_addr addr; /* FS: FIXME: Maraakate.org hack */
 	bool bMaraakateOrgHack = FALSE;
+#endif
 
 	if (!data || data[0] == '\0')
 	{
@@ -1479,7 +1520,8 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual gamename\\ */
 
-	if (!strcmp(inet_ntoa(from->sin_addr),"10.12.0.15") || !strcmp(inet_ntoa(from->sin_addr), "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
+	if (!strcmp(inet_ntoa(from->sin_addr), "127.0.0.1")) /* FS: FIXME: maraakate.org hack */
 	{
 		struct hostent *remoteHost;
 		remoteHost = gethostbyname("maraakate.org");
@@ -1487,8 +1529,9 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 		from->sin_addr.s_addr = addr.s_addr;
 		bMaraakateOrgHack = true;
-		Con_DPrintf("[I] Maraakate.org intercept hack\n");
+		Con_DPrintf("[I] Maraakate.org and Localhost port clashing hack from Heartbeat().\n");
 	}
+#endif
 
 	//walk through known servers
 	while (server->next)
@@ -1513,37 +1556,43 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 			server->last_heartbeat = (unsigned long)time(NULL);
 			Con_DPrintf("[I] heartbeat from %s:%u.\n",	inet_ntoa(server->ip.sin_addr), htons(server->port));
 
-			if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2")) /* FS: Quake 2 and QuakeWorld do it differently.  No validation :( */
+			if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2"))
 			{
-				Com_sprintf(validateString, sizeof(validateString), OOB_SEQ"%s", quakestatusstring);
+				memcpy(validateString, quakeworldquake2statusstring, sizeof(quakeworldquake2statusstring));
+				validateStringLen = sizeof(quakeworldquake2statusstring);
 			}
-			else if (!stricmp(server->gamename, "hexenworld")) /* FS: Hexenworld sends an extra 0xff for some reason */
+			else if (!stricmp(server->gamename, "hexenworld"))
 			{
 				memcpy(validateString, hexenworldstatusstring, sizeof(hexenworldstatusstring));
+				validateStringLen = sizeof(hexenworldstatusstring);
 			}
-			else if (!stricmp(server->gamename, "quake1")) /* FS: Special hack for ancient Quake 1 protocol */
+			else if (!stricmp(server->gamename, "hexen2"))
 			{
-				memcpy(validateString, quake1string, sizeof(quake1string));
+				memcpy(validateString, hexen2querystring, sizeof(hexen2querystring));
+				validateStringLen = sizeof(hexen2querystring);
+			}
+			else if (!stricmp(server->gamename, "quake1"))
+			{
+				memcpy(validateString, quake1querystring, sizeof(quake1querystring));
+				validateStringLen = sizeof(quake1querystring);
 			}
 			else
 			{
 				Com_sprintf(validateString, sizeof(validateString), "%s%s", statusstring, server->challengeKey);
-			}
-
-			if (!stricmp(server->gamename, "quake1"))
-				validateStringLen = sizeof(quake1string);
-			else
 				validateStringLen = DG_strlen(validateString);
+			}
 
 			validateString[validateStringLen] = '\0'; /* FS: GameSpy null terminates the end */
 
+#ifdef MARAAKATE_ORG_AND_LOCALHOST_HACK
 			if (!bMaraakateOrgHack) /* FS: FIXME: maraakate.org hack */
+#endif
 			{
 				sendto(listener, validateString, validateStringLen, 0, (struct sockaddr *)&addr, sizeof(addr)); /* FS: GameSpy uses the \status\ data for collection in a database so people can see the current stats without having to really ping the server. */
 
 				if (bSendAck) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
 				{
-					sendto(listener, OOB_SEQ"ack", 7, 0, (struct sockaddr *)&addr, sizeof(addr));
+					sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
 				}
 			}
 
@@ -1597,7 +1646,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Parse_UDP_MS_List(mslist, quakeworld, dglen-sizeof(qw_reply_hdr));
 			return;
 		}
-		else if (!strnicmp(data, OOB_SEQ"getservers daikatana", 24))
+		else if (!strnicmp(data, daikatanagetserversstring, daikatanagetserverslen))
 		{
 			Con_DPrintf("[I] %s:%d : query (%d bytes)\n",
 			inet_ntoa(from->sin_addr),
@@ -1637,7 +1686,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	}
 	else
 	{
-		if (!strnicmp(data, "query", 5))
+		if (!strnicmp(data, "query", 5)) /* FS: One of the many non-standard responses to a quake 2 query. */
 		{
 			Con_DPrintf("[I] %s:%d : query (%d bytes)\n",
 			inet_ntoa(from->sin_addr),
@@ -3300,6 +3349,16 @@ void ReadMasterDBBlob (void)
 	if (version != GSPY_DB_VERSION)
 	{
 		Con_DPrintf("[E] Invalid version number for database!  Returned %u expected %d.\n", version, GSPY_DB_VERSION);
+		free(buff);
+		fclose(dbFile);
+		return;
+	}
+
+	fileSizeParsed += 2;
+
+	if (fileSize < 8)
+	{
+		Con_DPrintf("[W] Empty gsmaster.db file.  Aborting.\n");
 		free(buff);
 		fclose(dbFile);
 		return;
