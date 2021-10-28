@@ -125,7 +125,7 @@ static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the 
 static const char ackstring[] = OOB_SEQ "ack";
 static const int ackstringlen = sizeof(ackstring) - 1;
 
-static const char daikatanagetserversstring[] = OOB_SEQ"getservers daikatana";
+static const char daikatanagetserversstring[] = OOB_SEQ "getservers daikatana";
 static const int daikatanagetserverslen = sizeof(daikatanagetserversstring) - 1;
 
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
@@ -146,8 +146,20 @@ static const unsigned char qw_msg[] =
 static const unsigned char hw_server_msg[] =
 		{ 255, A2A_PING, '\0' };
 
+static const unsigned char hw_hearbeat_msg[] =
+		{ 255, S2M_HEARTBEAT, '\0' };
+
+static const unsigned char hw_ack_msg[] =
+		{ 255, 255, 255, 255, 255, A2A_ACK, '\0' };
+
 static const unsigned char qw_server_msg[] =
 		{ A2A_PING, '\0' };
+
+static const unsigned char qw_hearbeat_msg[] =
+		{ S2M_HEARTBEAT, '\0' };
+
+static const unsigned char qw_ack_msg[] =
+		{ 255, 255, 255, 255, A2A_ACK, '\0' };
 
 static const unsigned char hw_server_shutdown[] =
 		{ 255, S2M_SHUTDOWN, '\n' };
@@ -159,28 +171,22 @@ static const unsigned char qspy_req_msg[] =
 		{ 'D', '\n' };
 
 static const unsigned char hw_reply_hdr[] =
-		{ 255, 255, 255, 255,
-		  255, M2C_SERVERLST, '\n' };
+		{ 255, 255, 255, 255, 255, M2C_SERVERLST, '\n' };
 
 static const unsigned char qw_reply_hdr[] =
-		{ 255, 255, 255, 255,
-		  M2C_SERVERLST, '\n' };
+		{ 255, 255, 255, 255, M2C_SERVERLST, '\n' };
 
 static const unsigned char qw_reply_hdr2[] =
-		{ 255, 255, 255, 255,
-		  M2C_SERVERLST, '\0' };
+		{ 255, 255, 255, 255, M2C_SERVERLST, '\0' };
 
 static const unsigned char q2_reply_hdr[] =
-		{ 255, 255, 255, 255,
-		  's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
+		{ 255, 255, 255, 255, 's', 'e', 'r', 'v', 'e', 'r', 's', ' '};
 
 static const unsigned char q2_msg[] =
-		{ 255, 255, 255, 255,
-		  'g', 'e', 't', 's', 'e', 'r', 'v', 'e', 'r', 's', '\0'};
+		{ 255, 255, 255, 255, 'g', 'e', 't', 's', 'e', 'r', 'v', 'e', 'r', 's', '\0'};
 
 static const unsigned char q2_msg_alternate[] =
-		{ 255, 255, 255, 255,
-		  'q', 'u', 'e', 'r', 'y', '\0'};
+		{ 255, 255, 255, 255, 'q', 'u', 'e', 'r', 'y', '\0'};
 
 static const unsigned char q2_msg_noOOB[] =
 		{ 'g', 'e', 't', 's', 'e', 'r', 'v', 'e', 'r', 's', '\0'};
@@ -220,37 +226,46 @@ static const char *GetValidationRequiredString (void)
 	return "0 - Disabled";
 }
 
-static void PrintBanner()
+static void PrintBanner (void)
 {
 	printf("GSMaster v%s.  A GameSpy Encode Type 0 and Type 1 Emulator Master Server.\nBased on Q2-Master 1.1 by QwazyWabbit.  Originally GloomMaster.\n(c) 2002-2003 r1ch.net. (c) 2007 by QwazyWabbit.\n", VERSION);
 	printf("Built: %s at %s for %s.\n\n", __DATE__, __TIME__, OS_STRING);
 }
 
+static __inline int SendAcknowledge (const char *gamename)
+{
+	return (gamename && !stricmp(gamename, "quake2") || !stricmp(gamename, "quakeworld") || !stricmp(gamename, "hexenworld")) ? 1 : 0;
+}
+
 /* FS: Set a socket to be non-blocking */
 #ifdef _WIN32
 #define TCP_BLOCKING_ERROR WSAEWOULDBLOCK
-static int Set_Non_Blocking_Socket (SOCKET socket) {
+static int Set_Non_Blocking_Socket (SOCKET socket)
+{
 	u_long _true = true;
 
-	return ioctlsocket( socket, FIONBIO, &_true);
+	return ioctlsocket(socket, FIONBIO, &_true);
 }
 
-static __inline int Get_Last_Error(void) {
+static __inline int Get_Last_Error (void)
+{
 	return WSAGetLastError();
 }
 #else
 #define TCP_BLOCKING_ERROR EWOULDBLOCK
-static int Set_Non_Blocking_Socket (SOCKET socket) {
+static int Set_Non_Blocking_Socket (SOCKET socket)
+{
 	int _true = true;
-	return ioctlsocket( socket, FIONBIO, IOCTLARG_T &_true);
+	return ioctlsocket(socket, FIONBIO, IOCTLARG_T & _true);
 }
 
-static __inline int Get_Last_Error(void) {
+static __inline int Get_Last_Error (void)
+{
 	return errno;
 }
 #endif
 
-static __inline void msleep(unsigned long msec)
+static __inline void msleep (unsigned long msec)
 {
 #ifndef _WIN32
 	usleep(msec * 1000);
@@ -259,66 +274,66 @@ static __inline void msleep(unsigned long msec)
 #endif
 }
 
-static const char *NET_ErrorString(void)
+static const char *NET_ErrorString (void)
 {
 #ifdef _WIN32
 	int		code;
 
-	code = WSAGetLastError ();
+	code = WSAGetLastError();
 	switch (code)
 	{
-	case WSAEINTR: return "WSAEINTR";
-	case WSAEBADF: return "WSAEBADF";
-	case WSAEACCES: return "WSAEACCES";
-	case WSAEDISCON: return "WSAEDISCON";
-	case WSAEFAULT: return "WSAEFAULT";
-	case WSAEINVAL: return "WSAEINVAL";
-	case WSAEMFILE: return "WSAEMFILE";
-	case WSAEWOULDBLOCK: return "WSAEWOULDBLOCK";
-	case WSAEINPROGRESS: return "WSAEINPROGRESS";
-	case WSAEALREADY: return "WSAEALREADY";
-	case WSAENOTSOCK: return "WSAENOTSOCK";
-	case WSAEDESTADDRREQ: return "WSAEDESTADDRREQ";
-	case WSAEMSGSIZE: return "WSAEMSGSIZE";
-	case WSAEPROTOTYPE: return "WSAEPROTOTYPE";
-	case WSAENOPROTOOPT: return "WSAENOPROTOOPT";
-	case WSAEPROTONOSUPPORT: return "WSAEPROTONOSUPPORT";
-	case WSAESOCKTNOSUPPORT: return "WSAESOCKTNOSUPPORT";
-	case WSAEOPNOTSUPP: return "WSAEOPNOTSUPP";
-	case WSAEPFNOSUPPORT: return "WSAEPFNOSUPPORT";
-	case WSAEAFNOSUPPORT: return "WSAEAFNOSUPPORT";
-	case WSAEADDRINUSE: return "WSAEADDRINUSE";
-	case WSAEADDRNOTAVAIL: return "WSAEADDRNOTAVAIL";
-	case WSAENETDOWN: return "WSAENETDOWN";
-	case WSAENETUNREACH: return "WSAENETUNREACH";
-	case WSAENETRESET: return "WSAENETRESET";
-	case WSAECONNABORTED: return "WSWSAECONNABORTEDAEINTR";
-	case WSAECONNRESET: return "WSAECONNRESET";
-	case WSAENOBUFS: return "WSAENOBUFS";
-	case WSAEISCONN: return "WSAEISCONN";
-	case WSAENOTCONN: return "WSAENOTCONN";
-	case WSAESHUTDOWN: return "WSAESHUTDOWN";
-	case WSAETOOMANYREFS: return "WSAETOOMANYREFS";
-	case WSAETIMEDOUT: return "WSAETIMEDOUT";
-	case WSAECONNREFUSED: return "WSAECONNREFUSED";
-	case WSAELOOP: return "WSAELOOP";
-	case WSAENAMETOOLONG: return "WSAENAMETOOLONG";
-	case WSAEHOSTDOWN: return "WSAEHOSTDOWN";
-	case WSASYSNOTREADY: return "WSASYSNOTREADY";
-	case WSAVERNOTSUPPORTED: return "WSAVERNOTSUPPORTED";
-	case WSANOTINITIALISED: return "WSANOTINITIALISED";
-	case WSAHOST_NOT_FOUND: return "WSAHOST_NOT_FOUND";
-	case WSATRY_AGAIN: return "WSATRY_AGAIN";
-	case WSANO_RECOVERY: return "WSANO_RECOVERY";
-	case WSANO_DATA: return "WSANO_DATA";
-	default: return "NO ERROR";
+		case WSAEINTR: return "WSAEINTR";
+		case WSAEBADF: return "WSAEBADF";
+		case WSAEACCES: return "WSAEACCES";
+		case WSAEDISCON: return "WSAEDISCON";
+		case WSAEFAULT: return "WSAEFAULT";
+		case WSAEINVAL: return "WSAEINVAL";
+		case WSAEMFILE: return "WSAEMFILE";
+		case WSAEWOULDBLOCK: return "WSAEWOULDBLOCK";
+		case WSAEINPROGRESS: return "WSAEINPROGRESS";
+		case WSAEALREADY: return "WSAEALREADY";
+		case WSAENOTSOCK: return "WSAENOTSOCK";
+		case WSAEDESTADDRREQ: return "WSAEDESTADDRREQ";
+		case WSAEMSGSIZE: return "WSAEMSGSIZE";
+		case WSAEPROTOTYPE: return "WSAEPROTOTYPE";
+		case WSAENOPROTOOPT: return "WSAENOPROTOOPT";
+		case WSAEPROTONOSUPPORT: return "WSAEPROTONOSUPPORT";
+		case WSAESOCKTNOSUPPORT: return "WSAESOCKTNOSUPPORT";
+		case WSAEOPNOTSUPP: return "WSAEOPNOTSUPP";
+		case WSAEPFNOSUPPORT: return "WSAEPFNOSUPPORT";
+		case WSAEAFNOSUPPORT: return "WSAEAFNOSUPPORT";
+		case WSAEADDRINUSE: return "WSAEADDRINUSE";
+		case WSAEADDRNOTAVAIL: return "WSAEADDRNOTAVAIL";
+		case WSAENETDOWN: return "WSAENETDOWN";
+		case WSAENETUNREACH: return "WSAENETUNREACH";
+		case WSAENETRESET: return "WSAENETRESET";
+		case WSAECONNABORTED: return "WSWSAECONNABORTEDAEINTR";
+		case WSAECONNRESET: return "WSAECONNRESET";
+		case WSAENOBUFS: return "WSAENOBUFS";
+		case WSAEISCONN: return "WSAEISCONN";
+		case WSAENOTCONN: return "WSAENOTCONN";
+		case WSAESHUTDOWN: return "WSAESHUTDOWN";
+		case WSAETOOMANYREFS: return "WSAETOOMANYREFS";
+		case WSAETIMEDOUT: return "WSAETIMEDOUT";
+		case WSAECONNREFUSED: return "WSAECONNREFUSED";
+		case WSAELOOP: return "WSAELOOP";
+		case WSAENAMETOOLONG: return "WSAENAMETOOLONG";
+		case WSAEHOSTDOWN: return "WSAEHOSTDOWN";
+		case WSASYSNOTREADY: return "WSASYSNOTREADY";
+		case WSAVERNOTSUPPORTED: return "WSAVERNOTSUPPORTED";
+		case WSANOTINITIALISED: return "WSANOTINITIALISED";
+		case WSAHOST_NOT_FOUND: return "WSAHOST_NOT_FOUND";
+		case WSATRY_AGAIN: return "WSATRY_AGAIN";
+		case WSANO_RECOVERY: return "WSANO_RECOVERY";
+		case WSANO_DATA: return "WSANO_DATA";
+		default: return "NO ERROR";
 	}
 #else
 	return strerror (errno);
 #endif
 }
 
-static void Log_Sucessful_TCP_Connections(char *logbuffer)
+static void Log_Sucessful_TCP_Connections (char *logbuffer)
 {
 	FILE *f = fopen(logtcp_filename, "a+");
 	if (!f)
@@ -349,7 +364,7 @@ SOCKET UDP_OpenSocket (unsigned short port)
 	SOCKET newsocket;
 	struct sockaddr_in address;
 
-	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET)
+	if ((newsocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET)
 	{
 		printf("[E] UDP_OpenSocket: socket: %s", NET_ErrorString());
 		return INVALID_SOCKET;
@@ -365,13 +380,13 @@ SOCKET UDP_OpenSocket (unsigned short port)
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
 	address.sin_port = htons(port);
-	if ( bind (newsocket, (struct sockaddr *)&address, sizeof(address)) == -1)
+	if (bind(newsocket, (struct sockaddr *)&address, sizeof(address)) == -1)
 		goto ErrorReturn;
 
 	return newsocket;
 
 ErrorReturn:
-	closesocket (newsocket);
+	closesocket(newsocket);
 	return INVALID_SOCKET;
 }
 
@@ -379,10 +394,10 @@ static void NET_Init (void)
 {
 #ifdef _WIN32
 	// overhead to tell Windows we're using TCP/IP.
-	int err = WSAStartup ((WORD)MAKEWORD (2,2), &ws);
+	int err = WSAStartup((WORD)MAKEWORD(2, 2), &ws);
 	if (err)
 	{
-		printf("Error loading Windows Sockets! Error: %d\n",err);
+		printf("Error loading Windows Sockets! Error: %d\n", err);
 		exit(err);
 	}
 	else
@@ -400,7 +415,7 @@ static void NET_Init (void)
 	int i;
 	int err;
 
-/*	dbug_init();*/
+	/*	dbug_init();*/
 
 	i = _watt_do_exit;
 	_watt_do_exit = 0;
@@ -447,7 +462,7 @@ int gsmaster_main (int argc, char **argv)
 	printf("Send Acknowledgments from GameSpy Heartbeats: %d\n", bSendGameSpyAck);
 	printf("Validate New Server Immediately: %d\n", bValidate_newserver_immediately);
 	printf("Require Validation: %s\n", GetValidationRequiredString());
-	printf("Heartbeat interval: %lu Minutes\n", heartbeatInterval/60);
+	printf("Heartbeat interval: %lu Minutes\n", heartbeatInterval / 60);
 	printf("Minimum Heartbeats Required: %u\n", minimumHeartbeats);
 	printf("Timestamps: %d\n", timestamp);
 	printf("HTTP QW/Q2 Servers: %d\n", bHttpEnable);
@@ -481,7 +496,7 @@ int gsmaster_main (int argc, char **argv)
 		printf("[W] Couldn't set port %s UDP SO_REUSEADDR\n", bind_port);
 	}
 
-	if ((bind (listener, (struct sockaddr *)&listenaddress, sizeof(listenaddress))) == SOCKET_ERROR)
+	if ((bind(listener, (struct sockaddr *)&listenaddress, sizeof(listenaddress))) == SOCKET_ERROR)
 	{
 		printf("[E] Couldn't bind to port %s UDP (something is probably using it)\n", bind_port);
 		return 1;
@@ -520,15 +535,15 @@ int gsmaster_main (int argc, char **argv)
 	runmode = SRV_RUN; // set loop control
 
 #ifndef WIN32
-	#ifndef __DJGPP__
-	// in Linux or BSD we fork a daemon
-	// ...but not if debug mode
-	if (!debug && (daemon(0,0) < 0))
+#ifndef __DJGPP__
+// in Linux or BSD we fork a daemon
+// ...but not if debug mode
+	if (!debug && (daemon(0, 0) < 0))
 	{
 		printf("Forking error, running as console, error number was: %d\n", errno);
 		debug = 1;
 	}
-	#endif // __DJGPP__
+#endif // __DJGPP__
 
 	if (!debug)
 	{
@@ -586,7 +601,7 @@ int gsmaster_main (int argc, char **argv)
 		FD_ZERO(&master);
 		FD_SET(listener, &master);
 		set = master;
-		for(i = 0; i <= maxConnections; i++)
+		for (i = 0; i <= maxConnections; i++)
 		{
 			if (FD_ISSET(i, &set))
 			{ // we got one!!
@@ -622,7 +637,7 @@ int gsmaster_main (int argc, char **argv)
 
 		FD_SET(listenerTCP, &master);
 		set = master;
-		for(j = 0; j <= maxConnections; j++)
+		for (j = 0; j <= maxConnections; j++)
 		{
 			if (FD_ISSET(j, &set))
 			{
@@ -634,7 +649,7 @@ int gsmaster_main (int argc, char **argv)
 						if (FD_ISSET(listenerTCP, &set))
 						{
 							tcpSocket = accept(listenerTCP, (struct sockaddr *)&from, &fromlen);
-							if (tcpSocket != INVALID_SOCKET )
+							if (tcpSocket != INVALID_SOCKET)
 							{
 								newConnection++;
 								FD_SET(newConnection, &master); // add to master set
@@ -723,7 +738,7 @@ static void DropServer (server_t *server)
 	free(server);
 }
 
-static void AddServer (struct sockaddr_in *from, int normal, unsigned short queryPort, char *gamename, char *hostnameIp)
+static void AddServer (struct sockaddr_in *from, int acknowledge, unsigned short queryPort, char *gamename, char *hostnameIp)
 {
 	server_t	*server = &servers;
 	int			preserved_heartbeats = 0;
@@ -756,13 +771,13 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	{
 		server = server->next;
 
-		if (*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr && htons(queryPort) == htons(server->port))
+		if ((*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr) && (htons(queryPort) == htons(server->port)))
 		{
 			//already exists - could be a pending shutdown (ie killserver, change of map, etc)
 			if (server->shutdown_issued)
 			{
 				Con_DPrintf("[I] scheduled shutdown server %s sent another ping!\n", inet_ntoa(from->sin_addr));
-				DropServer (server);
+				DropServer(server);
 				server = &servers;
 
 				while (server->next)
@@ -820,7 +835,7 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 		server->gamename,
 		server->hostnameIp,
 		htons(server->port),
-		normal,
+		acknowledge,
 		numservers);
 
 	if (bValidate_newserver_immediately)
@@ -835,9 +850,20 @@ static void AddServer (struct sockaddr_in *from, int normal, unsigned short quer
 	addr.sin_port = server->port;
 	memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
-	if (normal && bSendGameSpyAck) /* FS: This isn't standard for GameSpy, it will show messages about the ack.  This is more a courtesy to tell the ded server that we received the heartbeat */
+	if (acknowledge || bSendGameSpyAck) /* FS: This isn't standard for GameSpy, it will show messages about the ack.  This is more a courtesy to tell the ded server that we received the heartbeat */
 	{
-		sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
+		if (!stricmp(gamename, "quakeworld"))
+		{
+			sendto(listener, qw_ack_msg, sizeof(qw_ack_msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+		}
+		else if (!stricmp(gamename, "hexenworld"))
+		{
+			sendto(listener, hw_ack_msg, sizeof(hw_ack_msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+		}
+		else
+		{
+			sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
+		}
 	}
 
 	if (!stricmp(server->gamename, "quakeworld") || !stricmp (server->gamename, "quake2"))
@@ -897,7 +923,7 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 		{
 			server = server->next;
 
-			if (*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr && from->sin_port == server->port)
+			if ((*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr) && (from->sin_port == server->port))
 			{
 				myserver = server;
 				break;
@@ -1603,7 +1629,18 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 
 				if (bSendGameSpyAck || bSendAckLegacy) /* FS: This isn't standard for GameSpy.  This is more a courtesy to tell the ded server that we received the heartbeat */
 				{
-					sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
+					if (!stricmp(server->gamename, "quakeworld"))
+					{
+						sendto(listener, qw_ack_msg, sizeof(qw_ack_msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+					}
+					else if (!stricmp(server->gamename, "hexenworld"))
+					{
+						sendto(listener, hw_ack_msg, sizeof(hw_ack_msg), 0, (struct sockaddr *)&addr, sizeof(addr));
+					}
+					else
+					{
+						sendto(listener, ackstring, ackstringlen, 0, (struct sockaddr *)&addr, sizeof(addr));
+					}
 				}
 			}
 
@@ -1616,14 +1653,15 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 		}
 	}
 
-	//we didn't find server in our list
-	AddServer (from, 0, htons(queryPort), cmdToken, NULL);
+	// we didn't find server in our list
+	AddServer (from, SendAcknowledge(cmdToken), htons(queryPort), cmdToken, NULL);
 }
 
 static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 {
 	char *cmd = data;
 	char *line = data;
+	char packetData[64] = { 0 };
 	unsigned char *mslist = (unsigned char *)data;
 
 	while (*line && *line != '\n')
@@ -1632,6 +1670,22 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	}
 
 	*(line++) = '\0';
+
+	/* FS: TODO: This actually sends out total number of active players, could be useful for SmartSpy query. */
+	if (!memcmp(incoming, hw_hearbeat_msg, sizeof(hw_hearbeat_msg)))
+	{
+		Con_DPrintf("[I] HexenWorld Server sending a heartbeat.\n");
+		Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\hexenworld", ntohs(from->sin_port));
+		HeartBeat(from, packetData);
+		return;
+	}
+	else if (!memcmp(incoming, qw_hearbeat_msg, sizeof(qw_hearbeat_msg)))
+	{
+		Con_DPrintf("[I] QuakeWorld Server sending a heartbeat.\n");
+		Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\quakeworld", ntohs(from->sin_port));
+		HeartBeat(from, packetData);
+		return;
+	}
 
 	if (strstr(data, OOB_SEQ)) /* FS: GameSpy doesn't send the 0xFF out-of-band. */
 	{
@@ -1668,7 +1722,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			SendUDPServerListToClient(from, "daikatana");
 			return;
 		}
-		else if (!strnicmp(data, OOB_SEQ"query", 9) || !strnicmp(data, OOB_SEQ"getservers", 14))
+		else if (!strnicmp(data, OOB_SEQ "query", 9) || !strnicmp(data, OOB_SEQ "getservers", 14))
 		{
 			Con_DPrintf("[I] %s:%d : query (%d bytes)\n",
 			inet_ntoa(from->sin_addr),
@@ -1678,13 +1732,13 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			SendUDPServerListToClient(from, "quake2");
 			return;
 		}
-		else if (!strnicmp(data, OOB_SEQ"rcon", 8))
+		else if (!strnicmp(data, OOB_SEQ "rcon", 8))
 		{
 			cmd +=9;
 			Rcon(from, cmd);
 			return;
 		}
-		else if (!strnicmp(data, OOB_SEQ"heartbeat", 13))
+		else if (!strnicmp(data, OOB_SEQ "heartbeat", 13))
 		{
 			char q2heartbeat[96];
 
@@ -1720,8 +1774,9 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	/* FS: If we got here then it's some GameSpy related stuff. */
 	if (!strnicmp(cmd, "ping", 4))
 	{
-		/* FS: Do nothing, GameSpy doesn't care about this */
-		// AddServer (from, 1, htons(from->sin_port), "ping");
+		/* FS: Impossible to determine the game from this.  Likely Q2, but could be KP, DK, etc.
+		 *     Heartbeat gets sent soon we can figure it out then.
+		 */
 	}
 	else if (!strnicmp(cmd, "heartbeat", 9)) /* FS: GameSpy only responds to "heartbeat", print is Q2 */
 	{
@@ -2808,7 +2863,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 		from.sin_addr.s_addr = addr.s_addr;
 		from.sin_family = AF_INET;
 		from.sin_port = htons(queryPort);
-		AddServer(&from, 0, htons(queryPort), listToken, ip);
+		AddServer(&from, SendAcknowledge(listToken), htons(queryPort), listToken, ip);
 		break;
 	}
 
@@ -3164,7 +3219,7 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 		from.sin_addr.s_addr = addr.s_addr;
 		from.sin_family = AF_INET;
 		from.sin_port = htons(port);
-		AddServer(&from, 0, htons(port), gamename, ip);
+		AddServer(&from, SendAcknowledge(gamename), htons(port), gamename, ip);
 
 		tmp += 6;
 		size -= 6;
@@ -3174,12 +3229,12 @@ static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
 static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from)
 {
 	char serverName[64];
-	char shutdownPacket[64];
+	char packetData[64];
 
 	if (len > 4)
 	{
 		//parse this packet
-		ParseResponse (from, incoming, len);
+		ParseResponse(from, incoming, len);
 	}
 	else
 	{
@@ -3201,7 +3256,7 @@ static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *fr
 		else if (!memcmp(incoming, hw_server_msg, sizeof(hw_server_msg)))
 		{
 			Con_DPrintf("[I] HexenWorld Server sending a ping.\n");
-			Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n",inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+			Com_sprintf(serverName, sizeof(serverName), "%s:%d,hexenworld\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
 			AddServers_From_List_Execute(serverName, 0);
 		}
 		else if (!memcmp(incoming, qw_server_msg, sizeof(qw_server_msg)))
@@ -3212,13 +3267,13 @@ static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *fr
 		}
 		else if (!memcmp(incoming, hw_server_shutdown, sizeof(hw_server_shutdown)))
 		{
-			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\2", ntohs(from->sin_port));
-			HeartBeat(from, shutdownPacket);
+			Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\hexenworld\\statechanged\\%s", ntohs(from->sin_port), GAMESPY_STATE_SHUTDOWN_STRING);
+			HeartBeat(from, packetData);
 		}
 		else if (!memcmp(incoming, qw_server_shutdown, sizeof(qw_server_shutdown)))
 		{
-			Com_sprintf(shutdownPacket, sizeof(shutdownPacket), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\2", ntohs(from->sin_port));
-			HeartBeat(from, shutdownPacket);
+			Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\quakeworld\\statechanged\\%s", ntohs(from->sin_port), GAMESPY_STATE_SHUTDOWN_STRING);
+			HeartBeat(from, packetData);
 		}
 		else if (!memcmp(incoming, qspy_req_msg, sizeof(qspy_req_msg))) /* FS: QuakeSpy just wants something sent back to know it's alive on startup */
 		{
@@ -3405,7 +3460,7 @@ void ReadMasterDBBlob (void)
 		from.sin_addr.s_addr = addr.s_addr;
 		from.sin_family = AF_INET;
 		from.sin_port = htons(port);
-		AddServer(&from, 0, htons(port), gamename, ip);
+		AddServer(&from, SendAcknowledge(gamename), htons(port), gamename, ip);
 	}
 
 	free(buff);

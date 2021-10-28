@@ -85,7 +85,9 @@ void signal_handler(int sig);
 #define	S2C_CHALLENGE		'c'
 #define	M2C_SERVERLST		'd'
 #define A2A_PING			'k'
+#define	A2A_ACK				'l'
 #define	S2M_SHUTDOWN		'C'
+#define S2M_HEARTBEAT		'a'
 
 #define MAX_GSPY_MTU_SIZE 1022
 #define GSPY_BUFFER_GROWBY_SIZE 511
