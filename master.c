@@ -234,7 +234,7 @@ static void PrintBanner (void)
 
 static __inline int SendAcknowledge (const char *gamename)
 {
-	return (gamename && !stricmp(gamename, "quake2") || !stricmp(gamename, "quakeworld") || !stricmp(gamename, "hexenworld")) ? 1 : 0;
+	return (gamename && (!stricmp(gamename, "quake2") || !stricmp(gamename, "quakeworld") || !stricmp(gamename, "hexenworld"))) ? 1 : 0;
 }
 
 /* FS: Set a socket to be non-blocking */
