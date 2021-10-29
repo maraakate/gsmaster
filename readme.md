@@ -4,26 +4,26 @@ Probable exploits, if you find some serious issues email me
 emoaddict15@gmail.com.
 
 Supported Games
- Blood 2
- Daikatana
- GameSpy 3D
- GameSpy Lite Utility (used by Kingpin and South Park)
- Heretic 2
- Hexen 2
- HexenWorld
- Kingpin
- No One Lives Forever
- No One Lives Forever 2
- Quake 1
- QuakeSpy Utility
- QuakeWorld
- Quake 2
- Shogo
- SiN
- South Park
- Turok 2
- Unreal 1
- Unreal Tournament 99
+- Blood 2
+- Daikatana
+- GameSpy 3D
+- GameSpy Lite Utility (used by Kingpin and South Park)
+- Heretic 2
+- Hexen 2
+- HexenWorld
+- Kingpin
+- No One Lives Forever
+- No One Lives Forever 2
+- Quake 1
+- QuakeSpy Utility
+- QuakeWorld
+- Quake 2
+- Shogo
+- SiN
+- South Park
+- Turok 2
+- Unreal 1
+- Unreal Tournament 99
 
 This master server code is used in Daikatana v1.3, QDOS, QWDOS, and Q2DOS
 for their server browsers.
@@ -86,13 +86,14 @@ Commands
                               Use with -generateserverlist.
 
 Known Bugs
- DJGPP port is currently broken.  Compiles and executes fine, but only
- pings the last server in a large batch.
+- DJGPP port is currently broken.  Compiles and executes fine, but only
+pings the last server in a large batch.
 
 Credits
- [HCI]Mara'akate - Code
- Daniel Gibson - DG_misc.h string header
- Luigi Auriemma - For GameSpy validation algorithms (aluigi.org)
- QwazyWabbit - Original Code for Q2Master
- Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
- ID Software - Quake 2 Info_ValueForKeys and other small helper functions
+- [HCI]Mara'akate - Code
+- CHC - Help with Encode Type 1 encoder
+- Daniel Gibson - DG_misc.h string header
+- Luigi Auriemma - For GameSpy validation algorithms and Encode Type 1 packet dumps for analysis (aluigi.org)
+- QwazyWabbit - Original Code for Q2Master
+- Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
+- ID Software - Quake 2 Info_ValueForKeys and other small helper functions
