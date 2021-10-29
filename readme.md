@@ -1,36 +1,29 @@
-GameSpy Encode Type 0 and Encode Type 1 Emulator 0.6 by [HCI]Maraakate
-
-==========================
-1. Welcome
-==========================
 A GameSpy EncType 0 and EncType 1 emulator.
 Based off of Q2Master v1.1 by QwazyWabbit.
 Probable exploits, if you find some serious issues email me
 emoaddict15@gmail.com.
 
-==========================
-2. Supported Games
-==========================
-* Blood 2
-* Daikatana
-* GameSpy 3D
-* GameSpy Lite Utility (used by Kingpin and South Park)
-* Heretic 2
-* Hexen 2
-* HexenWorld
-* Kingpin
-* No One Lives Forever
-* No One Lives Forever 2
-* Quake 1
-* QuakeSpy Utility
-* QuakeWorld
-* Quake 2
-* Shogo
-* SiN
-* South Park
-* Turok 2
-* Unreal 1
-* Unreal Tournament 99
+Supported Games
+ Blood 2
+ Daikatana
+ GameSpy 3D
+ GameSpy Lite Utility (used by Kingpin and South Park)
+ Heretic 2
+ Hexen 2
+ HexenWorld
+ Kingpin
+ No One Lives Forever
+ No One Lives Forever 2
+ Quake 1
+ QuakeSpy Utility
+ QuakeWorld
+ Quake 2
+ Shogo
+ SiN
+ South Park
+ Turok 2
+ Unreal 1
+ Unreal Tournament 99
 
 This master server code is used in Daikatana v1.3, QDOS, QWDOS, and Q2DOS
 for their server browsers.
@@ -41,9 +34,7 @@ Quake 2 servers use port 27910.  Daikatana uses two ports, 27992 for the
 connection and 27982 for the GameSpy query.  Other games may use this
 port scheme.
 
-==========================
-3. Commands
-==========================
+Commands
  -sendack - by default GameSpy doesn't not send this type of packet out.
             if you want to extend the courtesy of acknowleding the
             heartbeat then enable this setting.
@@ -94,18 +85,14 @@ port scheme.
  -serverlisttimer <seconds> - Time (in seconds) to generate a server list.
                               Use with -generateserverlist.
 
-==========================
-4. Known Bugs
-==========================
-* DJGPP port is currently broken.  Compiles and executes fine, but only
-  pings the last server in a large batch.
+Known Bugs
+ DJGPP port is currently broken.  Compiles and executes fine, but only
+ pings the last server in a large batch.
 
-==========================
-5. Credits
-==========================
-[HCI]Mara'akate - Code
-Daniel Gibson - DG_misc.h string header
-Luigi Auriemma - For GameSpy validation algorithms (aluigi.org)
-QwazyWabbit - Original Code for Q2Master
-Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
-ID Software - Quake 2 Info_ValueForKeys and other small helper functions
+Credits
+ [HCI]Mara'akate - Code
+ Daniel Gibson - DG_misc.h string header
+ Luigi Auriemma - For GameSpy validation algorithms (aluigi.org)
+ QwazyWabbit - Original Code for Q2Master
+ Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
+ ID Software - Quake 2 Info_ValueForKeys and other small helper functions
