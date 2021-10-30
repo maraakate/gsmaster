@@ -1,0 +1,15 @@
+TODO as of 10/30/21
+
+* SmartSpy filtering is ignored.  So you cannot do requests like
+  asking for only full or empty servers, specific mods, regions, players, etc.
+* 'full' and 'empty' requests at the end of an OOB_SEQ packet are also ignored.
+* For either of the above to work the results of game server queries need to
+  be parsed and saved in the server list struct.
+* It would probably make sense to save this into the gsmaster.db eventually.
+* Periodically save gsmaster.db in case the master server or host
+  machine crashes.
+* Abstract the HTTP list scraping to not rely on hardcoded files.
+* Actually take advantage of the multiple requests in HTTP
+  list scraping so it's not grabbing one file at a time.
+* EncType 2 and EncType 'X' support.
+* UT2003/2004 support.

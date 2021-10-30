@@ -104,8 +104,9 @@ port scheme.
 5. Credits
 ==========================
 [HCI]Mara'akate - Code
+CHC - Help with Encode Type 1 encoder
 Daniel Gibson - DG_misc.h string header
-Luigi Auriemma - For GameSpy validation algorithms (aluigi.org)
+Luigi Auriemma - For GameSpy validation algorithms and Encode Type 1 packet dumps for analysis (aluigi.org)
 QwazyWabbit - Original Code for Q2Master
 Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
 ID Software - Quake 2 Info_ValueForKeys and other small helper functions

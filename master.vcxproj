@@ -224,6 +224,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="readme.md" />
     <None Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -245,6 +246,9 @@
     <ClCompile Include="gsmalg.c" />
     <ClCompile Include="master.c" />
     <ClCompile Include="service.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

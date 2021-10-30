@@ -15,6 +15,9 @@
     <None Include="readme.txt">
       <Filter>Notes</Filter>
     </None>
+    <None Include="readme.md">
+      <Filter>Notes</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="curl_dl.h">
@@ -67,5 +70,10 @@
     <ClCompile Include="exception_handler.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt">
+      <Filter>Notes</Filter>
+    </Text>
   </ItemGroup>
 </Project>
