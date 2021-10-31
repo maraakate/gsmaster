@@ -11,5 +11,6 @@ void CURL_HTTP_Shutdown (void);
 int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *gamename);
 void CURL_HTTP_Update (void);
 void CURL_HTTP_Reset (void *);
+void CURL_HTTP_AddToQueue (const char *url, const char *filename, const char *gamename);
 
 #endif//__curl_dl_h

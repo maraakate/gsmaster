@@ -2980,22 +2980,45 @@ static void HTTP_DL_List (void)
 
 		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt", "quakeworld"))
 		{
-			printf("[E] Download failed to start!\n");
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt", "quakeworld");
 		}
 
 		if (!CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt", "quake2"))
 		{
-			printf("[E] Download failed to start!\n");
+			CURL_HTTP_AddToQueue("http://q2servers.com/?raw=1", "q2servers.txt", "quake2");
 		}
 
 		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt", "quake1"))
 		{
-			printf("[E] Download failed to start!\n");
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt", "quake1");
 		}
+
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=kingpin", "qtkpservers.txt", "kingpin"))
+		{
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=kingpin", "qtkpservers.txt", "kingpin");
+		}
+
+#if 0
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=unrealtournament", "qtutservers.txt", "ut"))
+		{
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=unrealtournament", "qtutservers.txt", "ut");
+		}
+#endif
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=daikatana", "qtdkservers.txt", "daikatana"))
+		{
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=daikatana", "qtdkservers.txt", "daikatana");
+		}
+
+#if 0
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=unreal", "qtunrealservers.txt", "unreal"))
+		{
+			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=unreal", "qtunrealservers.txt", "unreal");
+		}
+#endif
 
 		if (!CURL_HTTP_StartDownload("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt", "kingpin"))
 		{
-			printf("[E] Download failed to start!\n");
+			CURL_HTTP_AddToQueue("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt", "kingpin");
 		}
 
 		lastMasterListDL = (double)time(NULL);

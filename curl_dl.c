@@ -49,12 +49,113 @@ static CURLM *multi_handle;
 typedef struct curl_helper_s
 {
 	void *downloadHandle;
-	char gamename[MAX_PATH];
 	char filename[MAX_PATH];
+	char gamename[MAX_PATH];
 	bool inUse;
 } curl_helper_t;
 
+typedef struct curl_queue_s
+{
+	char url[MAX_URLLENGTH];
+	char filename[MAX_PATH];
+	char gamename[MAX_PATH];
+	struct curl_queue_s *next;
+} curl_queue_t;
+
 static curl_helper_t curl_helper[MAX_CONCURRENT_CURL_HANDLES];
+static curl_queue_t *curl_queue = NULL;
+
+static curl_queue_t *CURL_HTTP_GetQueue (const char *url, const char *filename, const char *gamename)
+{
+	curl_queue_t *next = curl_queue;
+
+	if (!url || !filename || !gamename || !curl_queue)
+	{
+		return NULL;
+	}
+
+	while (next)
+	{
+		if (!stricmp(next->url, url) && !stricmp(next->filename, filename) && !stricmp(next->gamename, gamename))
+		{
+			return next;
+		}
+
+		next = next->next;
+	}
+
+	return NULL;
+}
+
+void CURL_HTTP_AddToQueue (const char *url, const char *filename, const char *gamename)
+{
+	curl_queue_t *var;
+
+	if (!url || !filename || !gamename)
+	{
+		return;
+	}
+
+	if (CURL_HTTP_GetQueue(url, filename, gamename))
+	{
+		return;
+	}
+
+	var = calloc(1, sizeof(curl_queue_t));
+	if (!var)
+	{
+		printf("[E] Error allocating memory!\n");
+	}
+
+	strncpy(var->url, url, sizeof(var->url)-1);
+	strncpy(var->filename, filename, sizeof(var->filename)-1);
+	strncpy(var->gamename, gamename, sizeof(var->gamename)-1);
+
+	var->next = curl_queue;
+	curl_queue = var;
+}
+
+static void CURL_HTTP_ScheduleQueue (void)
+{
+	curl_queue_t *var;
+	curl_queue_t *old;
+
+	if (!curl_queue || (curl_number_of_active_handles >= MAX_CONCURRENT_CURL_HANDLES))
+	{
+		return;
+	}
+
+	var = curl_queue;
+	while (var->next)
+	{
+		var = var->next;
+	}
+
+	if (CURL_HTTP_StartDownload(var->url, var->filename, var->gamename))
+	{
+		old = &curl_queue[0];
+		if (curl_queue == var)
+		{
+			free(curl_queue);
+			curl_queue = NULL;
+			old = NULL;
+		}
+
+		while (curl_queue)
+		{
+			if (curl_queue->next == var)
+			{
+				free(curl_queue->next);
+				curl_queue->next = NULL;
+				break;
+			}
+
+			curl_queue = curl_queue->next;
+		}
+
+		curl_queue = old;
+	}
+}
 
 static int http_progress (void *clientp, double dltotal, double dlnow,
 			   double ultotal, double uplow)
@@ -114,7 +215,6 @@ int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *
 	i = curl_number_of_active_handles;
 	if (i >= MAX_CONCURRENT_CURL_HANDLES)
 	{
-		printf("[E] Out of CURL handles.\n");
 		return 0;
 	}
 
@@ -135,13 +235,11 @@ int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *
 
 			if (!bFound)
 			{
-				printf("[E] Out of CURL handles.\n");
 				return 0;
 			}
 		}
 		else
 		{
-			printf("[E] Out of CURL handles.\n");
 			return 0;
 		}
 	}
@@ -247,6 +345,8 @@ void CURL_HTTP_Update (void)
 			CURL_HTTP_Reset(msg->easy_handle);
 		}
 	}
+
+	CURL_HTTP_ScheduleQueue();
 }
 
 void CURL_HTTP_Reset (void *easy_handle)
@@ -284,4 +384,5 @@ void CURL_HTTP_Shutdown (void) {}
 int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *gamename) { return 0; }
 void CURL_HTTP_Update (void) {}
 void CURL_HTTP_Reset (void *) {}
+void CURL_HTTP_AddToQueue (const char *url, const char *filename, const char *gamename) {}
 #endif // USE_CURL
