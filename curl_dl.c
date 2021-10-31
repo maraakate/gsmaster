@@ -37,14 +37,24 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "master.h"
 #include "dk_essentials.h"
 
+#define MAX_CONCURRENT_CURL_HANDLES 5
+
 static int curl_init_error;
-static CURL *easy_handle;
+static int curl_number_of_active_handles = 0;
+static CURL *easy_handles[MAX_CONCURRENT_CURL_HANDLES];
 static CURLM *multi_handle;
 
 #define MAX_URLLENGTH	4000 /* FS: See http://boutell.com/newfaq/misc/urllength.html.  Apache is 4000 max. */
 
-FILE *download;
-char name[MAX_PATH];
+typedef struct curl_helper_s
+{
+	void *downloadHandle;
+	char gamename[MAX_PATH];
+	char filename[MAX_PATH];
+	bool inUse;
+} curl_helper_t;
+
+static curl_helper_t curl_helper[MAX_CONCURRENT_CURL_HANDLES];
 
 static int http_progress (void *clientp, double dltotal, double dlnow,
 			   double ultotal, double uplow)
@@ -54,7 +64,7 @@ static int http_progress (void *clientp, double dltotal, double dlnow,
 
 static size_t http_write (void *ptr, size_t size, size_t nmemb, void *stream)
 {
-	return fwrite(ptr, 1, size * nmemb, download);
+	return fwrite(ptr, 1, size * nmemb, stream);
 }
 
 void CURL_HTTP_Init (void)
@@ -78,47 +88,102 @@ void CURL_HTTP_Shutdown (void)
 	curl_global_cleanup();
 }
 
-void CURL_HTTP_StartDownload (const char *url, const char *filename)
+int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *gamename)
 {
 	char completedURL[MAX_URLLENGTH];
+	int i;
 
 	if (!filename)
 	{
 		printf("[E] CURL_HTTP_StartDownload: Filename is NULL!\n");
-		return;
+		return 0;
+	}
+
+	if (!gamename)
+	{
+		printf ("[E] CURL_HTTP_StartDownload: Gamename is NULL!\n");
+		return 0;
 	}
 
 	if (!url)
 	{
 		printf("[E] CURL_HTTP_StartDownload: URL is NULL!\n");
-		return;
+		return 0;
 	}
 
-	Com_sprintf(name, sizeof(name), "%s", filename);
-	if (!download)
+	i = curl_number_of_active_handles;
+	if (i >= MAX_CONCURRENT_CURL_HANDLES)
 	{
-		download = fopen(name, "wb");
+		printf("[E] Out of CURL handles.\n");
+		return 0;
+	}
 
-		if (!download)
+	if (curl_helper[i].inUse)
+	{
+		if (curl_number_of_active_handles < MAX_CONCURRENT_CURL_HANDLES)
 		{
-			printf("[E] CURL_HTTP_StartDownload: Failed to open %s\n", name);
-			return;
+			int bFound = 0;
+
+			for (i = 0; i < MAX_CONCURRENT_CURL_HANDLES; i++)
+			{
+				if (!curl_helper[i].inUse)
+				{
+					bFound = 1;
+					break;
+				}
+			}
+
+			if (!bFound)
+			{
+				printf("[E] Out of CURL handles.\n");
+				return 0;
+			}
+		}
+		else
+		{
+			printf("[E] Out of CURL handles.\n");
+			return 0;
 		}
 	}
+
+	memset(&curl_helper[i], 0, sizeof(curl_helper_t));
+	strncpy(curl_helper[i].filename, filename, sizeof(curl_helper[i].filename) - 1);
+	strncpy(curl_helper[i].gamename, gamename, sizeof(curl_helper[i].gamename) - 1);
+
+	if (!curl_helper[i].downloadHandle)
+	{
+		curl_helper[i].downloadHandle = fopen(curl_helper[i].filename, "wb");
+
+		if (!curl_helper[i].downloadHandle)
+		{
+			printf("[E] CURL_HTTP_StartDownload: Failed to open %s\n", curl_helper[i].filename);
+			return 0;
+		}
+	}
+
 	Com_sprintf(completedURL, sizeof(completedURL), "%s", url);
 	Con_DPrintf("[I] HTTP Download URL: %s\n", completedURL);
-	easy_handle = curl_easy_init();
+	Con_DPrintf("    Saving to: %s\n", curl_helper[i].filename);
 
-	curl_easy_setopt(easy_handle, CURLOPT_NOPROGRESS, 0L);
-	curl_easy_setopt(easy_handle, CURLOPT_NOSIGNAL, 1L);
-	curl_easy_setopt(easy_handle, CURLOPT_PROGRESSFUNCTION, http_progress);
-	curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, http_write);
-	curl_easy_setopt(easy_handle, CURLOPT_URL, completedURL);
+	easy_handles[i] = curl_easy_init();
+
+	curl_easy_setopt(easy_handles[i], CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(easy_handles[i], CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(easy_handles[i], CURLOPT_PROGRESSFUNCTION, http_progress);
+	curl_easy_setopt(easy_handles[i], CURLOPT_WRITEFUNCTION, http_write);
+	curl_easy_setopt(easy_handles[i], CURLOPT_URL, completedURL);
+	curl_easy_setopt(easy_handles[i], CURLOPT_WRITEDATA, curl_helper[i].downloadHandle);
+	curl_easy_setopt(easy_handles[i], CURLOPT_PRIVATE, &curl_helper[i]);
 #ifdef CURL_GRAB_HEADER
-	curl_easy_setopt(easy_handle, CURLOPT_WRITEHEADER, dl);
-	curl_easy_setopt(easy_handle, CURLOPT_HEADERFUNCTION, http_header);
+	curl_easy_setopt(easy_handles[i], CURLOPT_WRITEHEADER, dl);
+	curl_easy_setopt(easy_handles[i], CURLOPT_HEADERFUNCTION, http_header);
 #endif
-	curl_multi_add_handle(multi_handle, easy_handle);
+	curl_multi_add_handle(multi_handle, easy_handles[i]);
+
+	curl_helper[i].inUse = true;
+	curl_number_of_active_handles++;
+
+	return 1;
 }
 
 void CURL_HTTP_Update (void)
@@ -133,64 +198,90 @@ void CURL_HTTP_Update (void)
 		if (msg->msg == CURLMSG_DONE)
 		{
 			long        response_code;
+			curl_helper_t *ptr;
 
 			curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &ptr);
+
 			Con_DPrintf("HTTP URL response code: %li\n", response_code);
 
 			if ((response_code == HTTP_OK || response_code == HTTP_REST))
 			{
-				printf("[I] HTTP Download of %s completed\n", name);
-
-				if (download)
+				if (!ptr)
 				{
-					fclose(download);
+					printf("[E] Couldn't extract data pointer from CURL easy_handle!\n");
+					continue;
 				}
 
-				download = NULL;
-				Add_Servers_From_List(name);
+				printf("[I] HTTP Download of %s completed\n", ptr->filename);
+
+				if (ptr->downloadHandle)
+				{
+					fclose(ptr->downloadHandle);
+				}
+
+				ptr->downloadHandle = NULL;
+				ptr->inUse = false;
+				Add_Servers_From_List(ptr->filename, ptr->gamename);
 
 			}
 			else
 			{
-				if (download)
-				{
-					fclose(download);
-				}
-
-				download = NULL;
-
 				printf("[E] HTTP Download Failed: %ld.\n", response_code);
 
+				if (!ptr)
+				{
+					printf("[E] Couldn't extract data pointer from CURL easy_handle!\n");
+					continue;
+				}
+
+				if (ptr->downloadHandle)
+				{
+					fclose(ptr->downloadHandle);
+				}
+
+				ptr->downloadHandle = NULL;
+				ptr->inUse = false;
 			}
 
-			CURL_HTTP_Reset();
-
-			if (!strcmp(name, "qwservers.txt"))
-			{
-				CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt");
-			}
-			else if (!strcmp(name, "q2servers.txt"))
-			{
-				CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt");
-			}
-			else if (!strcmp(name, "q1servers.txt"))
-			{
-				CURL_HTTP_StartDownload("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt");
-			}
+			CURL_HTTP_Reset(msg->easy_handle);
 		}
 	}
 }
 
-void CURL_HTTP_Reset (void)
+void CURL_HTTP_Reset (void *easy_handle)
 {
-	curl_multi_remove_handle(multi_handle, easy_handle);
+	CURL *oldHandlePtr;
+	int i;
+
+	if (!easy_handle)
+	{
+		printf("[E] Invalid pointer passed to CURL_HTTP_Reset()!\n");
+		return;
+	}
+
+	oldHandlePtr = easy_handle;
+
+	curl_multi_remove_handle(multi_handle, (CURL *)easy_handle);
 	curl_easy_cleanup(easy_handle);
 	easy_handle = 0;
+	curl_number_of_active_handles--;
+	if (curl_number_of_active_handles < 0)
+		curl_number_of_active_handles = 0;
+
+	for (i = 0; i < MAX_CONCURRENT_CURL_HANDLES; i++)
+	{
+		if (oldHandlePtr == easy_handles[i])
+		{
+			easy_handles[i] = 0;
+			break;
+		}
+	}
 }
 #else
 void CURL_HTTP_Init (void) {}
 void CURL_HTTP_Shutdown (void) {}
-void CURL_HTTP_StartDownload (const char *url, const char *filename) {}
+int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *gamename) { return 0; }
 void CURL_HTTP_Update (void) {}
-void CURL_HTTP_Reset (void) {}
+void CURL_HTTP_Reset (void *) {}
 #endif // USE_CURL

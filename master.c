@@ -573,7 +573,7 @@ int gsmaster_main (int argc, char **argv)
 
 	if (load_Serverlist)
 	{
-		Add_Servers_From_List(serverlist_filename);
+		Add_Servers_From_List(serverlist_filename, NULL);
 	}
 
 	while (runmode == SRV_RUN) // 1 = running, 0 = stop, -1 = stopped.
@@ -2706,10 +2706,9 @@ closeTcpSocket:
 	tcpSocket = INVALID_SOCKET;
 }
 
-void Add_Servers_From_List (char *filename)
+void Add_Servers_From_List (char *filename, char *gamename)
 {
 	char *fileBuffer = NULL;
-	char *gamenameFromHttp = NULL;
 	long fileSize;
 	FILE *listFile = fopen(filename, "r+");
 	size_t toEOF = 0;
@@ -2757,37 +2756,7 @@ void Add_Servers_From_List (char *filename)
 	fileBuffer[toEOF] = '\n';
 	fileBuffer[toEOF+1] = '\0';
 
-	if (strstr(filename, "q2servers"))
-	{
-		gamenameFromHttp = (char *)malloc(7);
-		Com_sprintf(gamenameFromHttp, 7, "quake2");
-	}
-	else if (strstr(filename, "qwservers"))
-	{
-		gamenameFromHttp = (char *)malloc(11);
-		Com_sprintf(gamenameFromHttp, 11, "quakeworld");
-	}
-	else if (strstr(filename, "q1servers"))
-	{
-		gamenameFromHttp = (char *)malloc(7);
-		Com_sprintf(gamenameFromHttp, 7, "quake1");
-	}
-	else if (strstr(filename, "kpservers"))
-	{
-		gamenameFromHttp = (char *)malloc(8);
-		Com_sprintf(gamenameFromHttp, 8, "kingpin");
-	}
-	else
-	{
-		gamenameFromHttp = NULL;
-	}
-
-	Parse_ServerList(toEOF, fileBuffer, (char *)gamenameFromHttp); /* FS: Break it up divided by newline terminator */
-
-	if (gamenameFromHttp)
-	{
-		free(gamenameFromHttp);
-	}
+	Parse_ServerList(toEOF, fileBuffer, gamename); /* FS: Break it up divided by newline terminator */
 
 	free(fileBuffer);
 }
@@ -2975,7 +2944,7 @@ static void Rcon (struct sockaddr_in *from, char *queryString)
 				key = DK_strtok_r(NULL, " \\\n", &queryPtr);
 					if (key && key[0] != 0)
 					{
-						Add_Servers_From_List(key);
+						Add_Servers_From_List(key, NULL);
 					}
 					else
 					{
@@ -3008,7 +2977,27 @@ static void HTTP_DL_List (void)
 	if (bHttpEnable)
 	{
 		printf("[I] HTTP master server list download sceduled!\n");
-		CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt");
+
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt", "quakeworld"))
+		{
+			printf("[E] Download failed to start!\n");
+		}
+
+		if (!CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt", "quake2"))
+		{
+			printf("[E] Download failed to start!\n");
+		}
+
+		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt", "quake1"))
+		{
+			printf("[E] Download failed to start!\n");
+		}
+
+		if (!CURL_HTTP_StartDownload("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt", "kingpin"))
+		{
+			printf("[E] Download failed to start!\n");
+		}
+
 		lastMasterListDL = (double)time(NULL);
 	}
 #endif

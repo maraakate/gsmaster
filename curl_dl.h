@@ -8,8 +8,8 @@
 #define HTTP_NOT_FOUND 404
 void CURL_HTTP_Init (void);
 void CURL_HTTP_Shutdown (void);
-void CURL_HTTP_StartDownload (const char *url, const char *filename);
+int CURL_HTTP_StartDownload (const char *url, const char *filename, const char *gamename);
 void CURL_HTTP_Update (void);
-void CURL_HTTP_Reset (void);
+void CURL_HTTP_Reset (void *);
 
 #endif//__curl_dl_h

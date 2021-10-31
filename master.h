@@ -115,6 +115,6 @@ struct server_s
 };
 
 void ParseCommandLine (int argc, char **argv);
-void Add_Servers_From_List (char *filename);
+void Add_Servers_From_List (char *filename, char *gamename);
 
 #endif /* MASTER_H */

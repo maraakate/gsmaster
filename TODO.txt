@@ -1,4 +1,4 @@
-TODO as of 10/30/21
+TODO as of 10/31/21
 
 * SmartSpy filtering is ignored.  So you cannot do requests like
   asking for only full or empty servers, specific mods, regions, players, etc.
@@ -9,7 +9,6 @@ TODO as of 10/30/21
 * Periodically save gsmaster.db in case the master server or host
   machine crashes.
 * Abstract the HTTP list scraping to not rely on hardcoded files.
-* Actually take advantage of the multiple requests in HTTP
-  list scraping so it's not grabbing one file at a time.
 * EncType 2 and EncType 'X' support.
 * UT2003/2004 support.
+* Queue for HTTP downloader if too many concurrent downloads.
