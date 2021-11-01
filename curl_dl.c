@@ -105,6 +105,7 @@ void CURL_HTTP_AddToQueue (const char *url, const char *filename, const char *ga
 	if (!var)
 	{
 		printf("[E] Error allocating memory!\n");
+		return;
 	}
 
 	strncpy(var->url, url, sizeof(var->url)-1);

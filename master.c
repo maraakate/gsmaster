@@ -534,7 +534,7 @@ int gsmaster_main (int argc, char **argv)
 	FD_ZERO(&set);
 	FD_SET(listener, &set);
 
-	fromlen = (unsigned)sizeof(from);
+	fromlen = sizeof(from);
 	printf("listening on %s:%s (UDP)\n", bind_ip, bind_port);
 	printf("listening on %s:%s (TCP)\n", bind_ip, bind_port_tcp);
 	runmode = SRV_RUN; // set loop control
@@ -3042,7 +3042,7 @@ static void HTTP_DL_List (void)
 			filename = DK_strtok_r(NULL, separators, &listPtr);
 			gamename = DK_strtok_r(NULL, separators, &listPtr);
 
-			if (url && filename && gamename)
+			if (filename && gamename)
 			{
 				if (!CURL_HTTP_StartDownload(url, filename, gamename))
 				{
@@ -3445,14 +3445,6 @@ void ReadMasterDBBlob (void)
 		return;
 	}
 
-	buff = calloc(1, (6) * sizeof(unsigned char));
-	if (!buff)
-	{
-		Con_DPrintf("[E] Failed to allocate temporary buffer for database!\n");
-		fclose(dbFile);
-		return;
-	}
-
 	fseek(dbFile, 0, SEEK_END);
 	fileSize = ftell(dbFile);
 	if (fileSize < 3) /* FS: Don't waste time if it's blank or just the header and no servers. */
@@ -3467,7 +3459,6 @@ void ReadMasterDBBlob (void)
 	if (version != GSPY_DB_VERSION)
 	{
 		Con_DPrintf("[E] Invalid version number for database!  Returned %u expected %d.\n", version, GSPY_DB_VERSION);
-		free(buff);
 		fclose(dbFile);
 		return;
 	}
@@ -3477,7 +3468,14 @@ void ReadMasterDBBlob (void)
 	if (fileSize < 8)
 	{
 		Con_DPrintf("[W] Empty gsmaster.db file.  Aborting.\n");
-		free(buff);
+		fclose(dbFile);
+		return;
+	}
+
+	buff = calloc(1, (6) * sizeof(unsigned char));
+	if (!buff)
+	{
+		Con_DPrintf("[E] Failed to allocate temporary buffer for database!\n");
 		fclose(dbFile);
 		return;
 	}
