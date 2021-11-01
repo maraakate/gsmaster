@@ -95,6 +95,7 @@ static char bind_port[KEY_LEN] = "27900";	// default port to bind
 static char bind_port_tcp[KEY_LEN] = "28900";	/* FS: default TCP port to bind */
 static char serverlist_filename[MAX_PATH] = ""; /* FS: For a list of servers to add at startup */
 static char masterserverlist_filename[MAX_PATH] = ""; /* FS: For a list of master servers to add at startup */
+static char httpdl_filename[MAX_PATH] = ""; /* FS: Scrape HTTP lists. */
 static char logtcp_filename[MAX_PATH] = LOGTCP_DEFAULTNAME;
 static int load_Serverlist;
 static int load_MasterServerlist;
@@ -465,7 +466,11 @@ int gsmaster_main (int argc, char **argv)
 	printf("Heartbeat interval: %lu Minutes\n", heartbeatInterval / 60);
 	printf("Minimum Heartbeats Required: %u\n", minimumHeartbeats);
 	printf("Timestamps: %d\n", timestamp);
-	printf("HTTP QW/Q2 Servers: %d\n", bHttpEnable);
+	printf("HTTP Server List Download: %d\n", bHttpEnable);
+	if (bHttpEnable)
+	{
+		printf("\tFilename: %s\n", httpdl_filename);
+	}
 	printf("MOTD: %d\n", bMotd);
 	printf("Log TCP connections: %d\n", bLogTCP);
 	printf("Write servers to external file list: %d\n", bGenerateServerList);
@@ -1858,8 +1863,8 @@ void ParseCommandLine (int argc, char **argv)
 					"                           Format is <ip>,<query port>,<gamename>\n" \
 					"                           i.e. maraakate.org,27982,daikatana.\n\n");
 
-			printf("* -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other\n" \
-					"                places.\n\n");
+			printf("* -httpenable <filename> - Uses HTTP to grab server lists from a filename.\n" \
+					"                Format is <url> <filename_to_save_to> <gamename>.\n\n");
 
 			printf("* -heartbeatinterval <minutes> - Time (in minutes) when a heartbeat is sent out\n" \
 					"                                 to a server on the list\n\n");
@@ -1906,7 +1911,11 @@ void ParseCommandLine (int argc, char **argv)
 		}
 		else if (!strnicmp(argv[i] + 1, "httpenable", 10))
 		{
-			bHttpEnable = true;
+			if (argv[i + 1] && (argv[i+1][0] != '-'))
+			{
+				DG_strlcpy(httpdl_filename, argv[i + 1], sizeof(httpdl_filename));
+				bHttpEnable = true;
+			}
 		}
 #ifdef _MSC_VER /* FS: Not on mingw. */
 		else if(!strnicmp(argv[i] + 1, "minidumpautogen", 15))
@@ -2281,10 +2290,6 @@ static void GameSpy_Send_MOTD (char *gamename, struct sockaddr_in *from)
 		printf("[E] File 'motd.txt' is emtpy!\n");
 		fclose(f);
 		return;
-	}
-	else
-	{
-		fseek(f, fileSize-1, SEEK_SET);
 	}
 
 	rewind(f);
@@ -2729,10 +2734,6 @@ void Add_Servers_From_List (char *filename, char *gamename)
 		fclose(listFile);
 		return;
 	}
-	else
-	{
-		fseek(listFile, fileSize-1, SEEK_SET);
-	}
 
 	rewind(listFile);
 	fileBuffer = (char *)calloc(1, sizeof(char)*(fileSize+2)); /* FS: In case we have to add a newline terminator */
@@ -2766,7 +2767,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 	char *ip = NULL;
 	char *listToken = NULL;
 	char *listPtr = NULL;
-	char separators[] = ",:\n";
+	static const char separators[] = ",:\n";
 	unsigned short queryPort = 0;
 	struct hostent *remoteHost;
 	struct in_addr addr;
@@ -2973,53 +2974,87 @@ static void Rcon (struct sockaddr_in *from, char *queryString)
 
 static void HTTP_DL_List (void)
 {
+	FILE *f;
+	long fileSize;
+	char *fileBuffer, *listToken, *listPtr;
+	static const char separators[] = " \t\n";
+	size_t toEOF;
+
 #ifdef USE_CURL
-	if (bHttpEnable)
+	if (bHttpEnable && (httpdl_filename[0] != '\0'))
 	{
+		f = fopen(httpdl_filename, "r+");
+		if (!f)
+		{
+			Con_DPrintf("[E] failed to open %s!\n", httpdl_filename);
+			lastMasterListDL = (double)time(NULL);
+			return;
+		}
+
+		fseek(f, 0, SEEK_END);
+		fileSize = ftell(f);
+		if (fileSize < 3) /* FS: If the file size is less than 3 (an emtpy serverlist file) then don't waste time. */
+		{
+			printf("[E] File '%s' is emtpy!\n", httpdl_filename);
+			lastMasterListDL = (double)time(NULL);
+			fclose(f);
+			return;
+		}
+
+		rewind(f);
+
+		fileBuffer = (char *)calloc(1, sizeof(char) * (fileSize + 2)); /* FS: In case we have to add a newline terminator */
+		if (!fileBuffer)
+		{
+			printf("[E] Out of memory!\n");
+			lastMasterListDL = (double)time(NULL);
+			return;
+		}
+
+		toEOF = fread(fileBuffer, sizeof(char), fileSize, f); /* FS: Copy it to a buffer */
+		fclose(f);
+
+		if (toEOF <= 0)
+		{
+			printf("[E] Cannot read file '%s' into memory!\n", httpdl_filename);
+			lastMasterListDL = (double)time(NULL);
+			free(fileBuffer);
+			return;
+		}
+
+		/* FS: Add newline terminator for some paranoia */
+		fileBuffer[toEOF] = '\n';
+		fileBuffer[toEOF + 1] = '\0';
+
+		listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
+		if (!listToken)
+		{
+			free(fileBuffer);
+			lastMasterListDL = (double)time(NULL);
+			return;
+		}
+
+		while (listToken)
+		{
+			char *url, *gamename, *filename;
+
+			url = listToken;
+			filename = DK_strtok_r(NULL, separators, &listPtr);
+			gamename = DK_strtok_r(NULL, separators, &listPtr);
+
+			if (url && filename && gamename)
+			{
+				if (!CURL_HTTP_StartDownload(url, filename, gamename))
+				{
+					CURL_HTTP_AddToQueue(url, filename, gamename);
+				}
+			}
+			listToken = DK_strtok_r(NULL, separators, &listPtr);
+		}
+
+		free(fileBuffer);
+
 		printf("[I] HTTP master server list download sceduled!\n");
-
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt", "quakeworld"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=quakeworld", "qwservers.txt", "quakeworld");
-		}
-
-		if (!CURL_HTTP_StartDownload("http://q2servers.com/?raw=1", "q2servers.txt", "quake2"))
-		{
-			CURL_HTTP_AddToQueue("http://q2servers.com/?raw=1", "q2servers.txt", "quake2");
-		}
-
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt", "quake1"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=quake", "q1servers.txt", "quake1");
-		}
-
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=kingpin", "qtkpservers.txt", "kingpin"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=kingpin", "qtkpservers.txt", "kingpin");
-		}
-
-#if 0
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=unrealtournament", "qtutservers.txt", "ut"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=unrealtournament", "qtutservers.txt", "ut");
-		}
-#endif
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=daikatana", "qtdkservers.txt", "daikatana"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=daikatana", "qtdkservers.txt", "daikatana");
-		}
-
-#if 0
-		if (!CURL_HTTP_StartDownload("http://qtracker.com/server_list_details.php?game=unreal", "qtunrealservers.txt", "unreal"))
-		{
-			CURL_HTTP_AddToQueue("http://qtracker.com/server_list_details.php?game=unreal", "qtunrealservers.txt", "unreal");
-		}
-#endif
-
-		if (!CURL_HTTP_StartDownload("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt", "kingpin"))
-		{
-			CURL_HTTP_AddToQueue("http://forum.hambloch.com/kingpin/servers_active.php?gameport=0", "kpservers.txt", "kingpin");
-		}
 
 		lastMasterListDL = (double)time(NULL);
 	}
@@ -3032,7 +3067,7 @@ static void Master_DL_List (char *filename)
 	char *ip = NULL;
 	char *listToken = NULL;
 	char *listPtr = NULL;
-	char separators[] = ",:\n";
+	static const char separators[] = ",:\n";
 	unsigned short queryPort = 0;
 	struct hostent *remoteHost;
 	struct in_addr addr;
@@ -3060,10 +3095,6 @@ static void Master_DL_List (char *filename)
 		printf("[E] File '%s' is emtpy!\n", filename);
 		fclose(listFile);
 		return;
-	}
-	else
-	{
-		fseek(listFile, fileSize-1, SEEK_SET);
 	}
 
 	rewind(listFile);
@@ -3424,7 +3455,12 @@ void ReadMasterDBBlob (void)
 
 	fseek(dbFile, 0, SEEK_END);
 	fileSize = ftell(dbFile);
-	fseek(dbFile, 0, SEEK_SET);
+	if (fileSize < 3) /* FS: Don't waste time if it's blank or just the header and no servers. */
+	{
+		fclose(dbFile);
+		return;
+	}
+
 	rewind(dbFile);
 
 	fread(&version, 2, 1, dbFile);

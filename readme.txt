@@ -77,8 +77,8 @@ port scheme.
  -serverlist <filename> - Adds servers from a list.  Hostnames are supported.
   Format is <ip>,<query port>,<gamename> i.e. maraakate.org,27982,daikatana.
 
- -httpenable - grabs HTTP lists of QW, Q2, and Q1 from QTracker and other
-               places.
+ -httpenable <filename> - Uses HTTP to grab server lists from a filename.
+                          Format is <url> <filename_to_save_to> <gamename>.
 
  -masterlist <filename> - Adds master servers from a list.  Every hour
                           GSMaster will ping these servers to grab their

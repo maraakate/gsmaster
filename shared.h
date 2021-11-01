@@ -16,7 +16,7 @@
 #define SRV_STOP	0
 #define SRV_STOPPED	-1
 
-#define VERSION "0.6"
+#define VERSION "0.7"
 
 #ifndef NULL
 #define NULL 0
@@ -28,7 +28,7 @@ typedef enum {false, true} bool;
 
 #define KEY_LEN 32	// give us some space
 #define MAXPENDING 16 /* FS: Max pending TCP connections */
-#define MAX_INCOMING_LEN 4000 /* FS: made this a #define.  GameSpy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~2000 from large lists. */
+#define MAX_INCOMING_LEN 65536 /* FS: made this a #define.  GameSpy doesnt send anything larger than 1024; but other servers do.  Max I've seen is about ~4000 from large lists.  A real issue with the old UDP QW/HW/Q2 queries. */
 #define MAX_GAMENAME_LEN 16 /* FS: Max gamename length used for game table and server structs */
 #define DEFAULTHEARTBEAT (5*60) /* FS: 5 minutes */
 #define DEFAULTSERVERLISTGENERATIONTIME (2.0*60.0) /* FS: 2 minutes */
