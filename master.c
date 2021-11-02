@@ -1705,7 +1705,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 		return;
 	}
 
-	if (strstr(data, OOB_SEQ)) /* FS: GameSpy doesn't send the 0xFF out-of-band. */
+	if (!memcmp(data, OOB_SEQ, 4)) /* FS: GameSpy doesn't send the 0xFF out-of-band. */
 	{
 		if (!strnicmp(data, (char *)q2_reply_hdr, sizeof(q2_reply_hdr)-1))
 		{
