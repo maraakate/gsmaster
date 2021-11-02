@@ -23,7 +23,7 @@
 #include <ctype.h>
 
 #define DG_MISC_IMPLEMENTATION /* FS: Caedes special string safe stuff */
-#include "dk_essentials.h"
+#include "gsm_essentials.h"
 
 void Com_sprintf (char *dest, size_t size, const char *fmt, ...)
 {
@@ -78,7 +78,7 @@ void Con_DPrintf (const char *fmt, ...)
 }
 
 /* FS: From FreeBSD */
-char *DK_strtok_r(char *s, const char *delim, char **last)
+char *GSM_strtok_r(char *s, const char *delim, char **last)
 {
 	char *spanp, *tok;
 	int c, sc;
@@ -172,26 +172,8 @@ char *Info_ValueForKey (const char *s, const char *key)
 	}
 }
 
-void GameSpy_Create_Challenge_Key (char *s, const size_t len)
-{
-	size_t i;
-	static const char challengeKey[] =
-		"abcdefghijklmnopqrstuvwxyz"
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"0123456789";
-
-	srand((unsigned)time(NULL));
-
-	for (i = 0; i < len; ++i)
-	{
-		s[i] = challengeKey[rand() % (sizeof(challengeKey) - 1)];
-	}
-
-	s[len] = '\0';
-}
-
 /* FS: Some compilers might not have this, from the solaris system file in Quake 2 */
-char *DK_strlwr (char *s)
+char *GSM_strlwr (char *s)
 {
 	char *ret = s;
 

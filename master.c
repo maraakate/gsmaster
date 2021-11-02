@@ -41,8 +41,8 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 #endif
 
 #include "master.h"
-#include "dk_essentials.h"
-#include "gamestable.h"
+#include "gsm_essentials.h"
+#include "gs_helpers.h"
 
 /* FS: IF YOU DON'T NEED THIS DISABLE IT OTHERWISE ADAPT TO YOUR HOSTNAME ACCORDINGLY!
  *     THIS IS INTENDED FOR THOSE THAT RUN DED SERVERS ON THE SAME IP AS THE MASTER SERVER!
@@ -1556,7 +1556,7 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	}
 
 	data += 10; /* FS: heartbeat\\ */
-	cmdToken = DK_strtok_r(data, seperators, &cmdPtr); /* FS: \\actual port\\ */
+	cmdToken = GSM_strtok_r(data, seperators, &cmdPtr); /* FS: \\actual port\\ */
 	if (!cmdToken || !cmdPtr)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No query port) from %s:%u!\n", inet_ntoa(from->sin_addr), htons(from->sin_port));
@@ -1564,14 +1564,14 @@ static void HeartBeat (struct sockaddr_in *from, char *data)
 	}
 
 	queryPort = (unsigned short)atoi(cmdToken); /* FS: Query port */
-	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\gamename\\ */
+	cmdToken = GSM_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\gamename\\ */
 	if (!cmdToken || !cmdPtr || strcmp(cmdToken, "gamename") != 0)
 	{
 		Con_DPrintf("[E] Invalid heartbeat packet (No gamename) from %s:%u!\n", inet_ntoa(from->sin_addr), htons(from->sin_port));
 		return;
 	}
 
-	cmdToken = DK_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual gamename\\ */
+	cmdToken = GSM_strtok_r(NULL, seperators, &cmdPtr); /* FS: \\actual gamename\\ */
 
 #ifdef HOSTNAME_AND_LOCALHOST_HACK
 	if (!strcmp(inet_ntoa(from->sin_addr), "127.0.0.1"))
@@ -2375,7 +2375,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 		}
 
 		ret += 19;
-		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
+		gamename = GSM_strtok_r(ret, "\\\n", &queryPtr);
 		bCompressed = true;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
@@ -2395,7 +2395,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 		}
 
 		ret += 10;
-		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
+		gamename = GSM_strtok_r(ret, "\\\n", &queryPtr);
 		bCompressed = false;
 		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
 	}
@@ -2785,7 +2785,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 	struct sockaddr_in from;
 	size_t ipStrLen = 0;
 
-	listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
+	listToken = GSM_strtok_r(fileBuffer, separators, &listPtr); // IP
 	if (!listToken)
 	{
 		return;
@@ -2811,7 +2811,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 
-		listToken = DK_strtok_r(NULL, separators, &listPtr); // Port
+		listToken = GSM_strtok_r(NULL, separators, &listPtr); // Port
 		if (!listToken)
 		{
 			Con_DPrintf("[E] Port not specified for '%s' in server list; skipping.\n", ip);
@@ -2831,7 +2831,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 		}
 		else
 		{
-			listToken = DK_strtok_r(NULL, separators, &listPtr); // Gamename
+			listToken = GSM_strtok_r(NULL, separators, &listPtr); // Gamename
 		}
 
 		if (!listToken)
@@ -2934,7 +2934,7 @@ static void Rcon (struct sockaddr_in *from, char *queryString)
 	char *queryPtr;
 	char rconMsg[80];
 
-	password = DK_strtok_r(queryString, " \\n", &queryPtr);
+	password = GSM_strtok_r(queryString, " \\n", &queryPtr);
 
 	if (rconPassword[0] != 0)
 	{
@@ -2949,11 +2949,11 @@ static void Rcon (struct sockaddr_in *from, char *queryString)
 		if (!strnicmp (queryPtr, "addservers\\", 11))
 		{
 			char *key = queryPtr + 10;
-			key = DK_strtok_r(key, " \\\n", &queryPtr);
+			key = GSM_strtok_r(key, " \\\n", &queryPtr);
 
 			if (key && (key[0] != 0) && !strcmp(key, "filename"))
 			{
-				key = DK_strtok_r(NULL, " \\\n", &queryPtr);
+				key = GSM_strtok_r(NULL, " \\\n", &queryPtr);
 					if (key && key[0] != 0)
 					{
 						Add_Servers_From_List(key, NULL);
@@ -3037,7 +3037,7 @@ static void HTTP_DL_List (void)
 		fileBuffer[toEOF] = '\n';
 		fileBuffer[toEOF + 1] = '\0';
 
-		listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
+		listToken = GSM_strtok_r(fileBuffer, separators, &listPtr); // IP
 		if (!listToken)
 		{
 			free(fileBuffer);
@@ -3050,8 +3050,8 @@ static void HTTP_DL_List (void)
 			char *url, *gamename, *filename;
 
 			url = listToken;
-			filename = DK_strtok_r(NULL, separators, &listPtr);
-			gamename = DK_strtok_r(NULL, separators, &listPtr);
+			filename = GSM_strtok_r(NULL, separators, &listPtr);
+			gamename = GSM_strtok_r(NULL, separators, &listPtr);
 
 			if (filename && gamename)
 			{
@@ -3060,7 +3060,7 @@ static void HTTP_DL_List (void)
 					CURL_HTTP_AddToQueue(url, filename, gamename);
 				}
 			}
-			listToken = DK_strtok_r(NULL, separators, &listPtr);
+			listToken = GSM_strtok_r(NULL, separators, &listPtr);
 		}
 
 		free(fileBuffer);
@@ -3131,7 +3131,7 @@ static void Master_DL_List (char *filename)
 	fileBuffer[toEOF] = '\n';
 	fileBuffer[toEOF+1] = '\0';
 
-	listToken = DK_strtok_r(fileBuffer, separators, &listPtr); // IP
+	listToken = GSM_strtok_r(fileBuffer, separators, &listPtr); // IP
 	if (!listToken)
 	{
 		free(fileBuffer);
@@ -3162,7 +3162,7 @@ static void Master_DL_List (char *filename)
 
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 
-		listToken = DK_strtok_r(NULL, separators, &listPtr); // Port
+		listToken = GSM_strtok_r(NULL, separators, &listPtr); // Port
 		if (!listToken)
 		{
 			Con_DPrintf("[E] Port not specified for '%s' in server list; skipping.\n", ip);
@@ -3176,7 +3176,7 @@ static void Master_DL_List (char *filename)
 			break;
 		}
 
-		listToken = DK_strtok_r(NULL, separators, &listPtr); // Gamename
+		listToken = GSM_strtok_r(NULL, separators, &listPtr); // Gamename
 		if (!listToken)
 		{
 			Con_DPrintf("[E] Gamename not specified for '%s:%u' in server list; skipping.\n", ip, queryPort);
@@ -3210,7 +3210,7 @@ static void Master_DL_List (char *filename)
 			Con_DPrintf("[E] Invalid gamename for Master Server Query: %s!\n", listToken);
 		}
 
-		listToken = DK_strtok_r(NULL, separators, &listPtr); /* FS: Play it again, Sam. */
+		listToken = GSM_strtok_r(NULL, separators, &listPtr); /* FS: Play it again, Sam. */
 	}
 
 	if (ip)

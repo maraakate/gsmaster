@@ -1,5 +1,5 @@
-#ifndef _GAMESTABLE_H
-#define _GAMESTABLE_H
+#ifndef _GS_HELPERS_H
+#define _GS_HELPERS_H
 
 #include "shared.h"
 
@@ -12,9 +12,12 @@ typedef struct game_table_s
 	unsigned short	motdPort;
 } game_table_t;
 
-extern game_table_t gameTable[MAX_SUPPORTED_GAMETYPES];
+extern const game_table_t gameTable[MAX_SUPPORTED_GAMETYPES];
 
+void GameSpy_Create_Challenge_Key (char *s, const size_t len);
+const char *GameSpy_Get_Game_SecKey (const char *gamename);
+unsigned short GameSpy_Get_MOTD_Port (const char *gamename);
 unsigned short GameSpy_Get_Table_Number (const char *gamename);
 unsigned short GameSpy_Get_GS3D_Port_Offset (const char *gamename, unsigned short port);
 
-#endif // _GAMESTABLE_H
+#endif // _GS_HELPERS_H

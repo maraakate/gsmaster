@@ -26,10 +26,10 @@
     <ClInclude Include="DG_misc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dk_essentials.h">
+    <ClInclude Include="gsm_essentials.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gamestable.h">
+    <ClInclude Include="gs_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="master.h">
@@ -49,13 +49,13 @@
     <ClCompile Include="curl_dl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dk_essentials.c">
+    <ClCompile Include="gsm_essentials.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="enctype1_helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gamestable.c">
+    <ClCompile Include="gs_helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gsmalg.c">

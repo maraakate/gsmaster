@@ -230,8 +230,8 @@
   <ItemGroup>
     <ClInclude Include="curl_dl.h" />
     <ClInclude Include="DG_misc.h" />
-    <ClInclude Include="dk_essentials.h" />
-    <ClInclude Include="gamestable.h" />
+    <ClInclude Include="gsm_essentials.h" />
+    <ClInclude Include="gs_helpers.h" />
     <ClInclude Include="master.h" />
     <ClInclude Include="osinfo.h" />
     <ClInclude Include="service.h" />
@@ -239,10 +239,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="curl_dl.c" />
-    <ClCompile Include="dk_essentials.c" />
+    <ClCompile Include="gsm_essentials.c" />
     <ClCompile Include="enctype1_helper.c" />
     <ClCompile Include="exception_handler.c" />
-    <ClCompile Include="gamestable.c" />
+    <ClCompile Include="gs_helpers.c" />
     <ClCompile Include="gsmalg.c" />
     <ClCompile Include="master.c" />
     <ClCompile Include="service.c" />

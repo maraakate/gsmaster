@@ -13,12 +13,14 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
+#include <time.h>
+#include <stdlib.h>
 
 #include "master.h"
-#include "dk_essentials.h"
-#include "gamestable.h"
+#include "gsm_essentials.h"
+#include "gs_helpers.h"
 
-game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
+const game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
 {
 	{"blood2", "jUOF0p", 0},
 	{"daikatana", "fl8aY7", 27991},
@@ -41,6 +43,24 @@ game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
 	{"ut", "Z5Nfb0", 0}, /* FS: Unreal Tournament 99 */
 	{NULL, NULL}
 };
+
+void GameSpy_Create_Challenge_Key (char *s, const size_t len)
+{
+	size_t i;
+	static const char challengeKey[] =
+		"abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"0123456789";
+
+	srand((unsigned)time(NULL));
+
+	for (i = 0; i < len; ++i)
+	{
+		s[i] = challengeKey[rand() % (sizeof(challengeKey) - 1)];
+	}
+
+	s[len] = '\0';
+}
 
 const char *GameSpy_Get_Game_SecKey (const char *gamename)
 {

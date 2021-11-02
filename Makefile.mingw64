@@ -21,8 +21,8 @@ CURLLFLAGS = -Lwin32 -lcurl_x64
 endif
 
 SERVER = master.o \
-	gamestable.o \
-	dk_essentials.o \
+	gs_helpers.o \
+	gsm_essentials.o \
 	gsmalg.o \
 	service.o \
 	curl_dl.o \

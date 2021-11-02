@@ -106,7 +106,7 @@ SOURCE=.\DG_misc.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\dk_essentials.h
+SOURCE=.\gsm_essentials.h
 # End Source File
 # Begin Source File
 
@@ -130,11 +130,11 @@ SOURCE=.\curl_dl.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dk_essentials.c
+SOURCE=.\gsm_essentials.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\gamestable.c
+SOURCE=.\gs_helpers.c
 # End Source File
 # Begin Source File
 

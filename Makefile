@@ -29,8 +29,8 @@ CURLLFLAGS = -L$(OSTYPE)/$(MACHTYPE) -lcurl
 endif
 
 SERVER = master.o \
-	gamestable.o \
-	dk_essentials.o \
+	gs_helpers.o \
+	gsm_essentials.o \
 	gsmalg.o \
 	curl_dl.o \
 	enctype1_helper.o

@@ -75,7 +75,7 @@ LICENSE
 */
 #include <stdlib.h>
 #include <string.h>
-#include "dk_essentials.h"
+#include "gsm_essentials.h"
 
 static const unsigned char enctype1_data[] = /* pre-built */
 		"\x01\xba\xfa\xb2\x51\x00\x54\x80\x75\x16\x8e\x8e\x02\x08\x36\xa5"

@@ -35,7 +35,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "shared.h"
 #include "master.h"
-#include "dk_essentials.h"
+#include "gsm_essentials.h"
 
 #define MAX_CONCURRENT_CURL_HANDLES 5
 

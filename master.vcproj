@@ -394,11 +394,11 @@
 				>
 			</File>
 			<File
-				RelativePath="dk_essentials.h"
+				RelativePath="gsm_essentials.h"
 				>
 			</File>
 			<File
-				RelativePath=".\gamestable.h"
+				RelativePath=".\gs_helpers.h"
 				>
 			</File>
 			<File
@@ -458,7 +458,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="dk_essentials.c"
+				RelativePath="gsm_essentials.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -502,7 +502,7 @@
 				>
 			</File>
 			<File
-				RelativePath="gamestable.c"
+				RelativePath="gs_helpers.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
