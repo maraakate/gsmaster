@@ -103,6 +103,7 @@ struct server_s
 	server_t		*next;
 	struct sockaddr_in	ip;
 	unsigned short	port;
+	unsigned short	gs3dport; /* FS: Mostly for Sin with GS3D. */
 	unsigned int	queued_pings;
 	unsigned int	heartbeats;
 	unsigned long	last_heartbeat;
@@ -110,7 +111,7 @@ struct server_s
 	unsigned char	shutdown_issued;
 	bool		validated;
 	char	gamename[MAX_GAMENAME_LEN];
-	char	challengeKey[64]; /* FS: Needed for GameSpy validation */
+	char	challengeKey[64]; /* FS: Needed for GameSpy validation. */
 	char	hostnameIp[MAX_DNS_NAMELEN+1];
 };
 

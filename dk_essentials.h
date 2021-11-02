@@ -9,8 +9,8 @@ void Con_DPrintf (const char *fmt, ...);
 char *DK_strtok_r (char *s, const char *delim, char **last);
 char *Info_ValueForKey (const char *s, const char *key); /* FS: From Quake 2 */
 void GameSpy_Create_Challenge_Key (char *s, const size_t len);
-const char *GameSpy_Get_Game_SecKey (char *gamename);
-unsigned short GameSpy_Get_MOTD_Port (char *gamename);
+const char *GameSpy_Get_Game_SecKey (const char *gamename);
+unsigned short GameSpy_Get_MOTD_Port (const char *gamename);
 char *DK_strlwr (char *s); /* FS: Some compilers may not have this */
 void Parse_ServerList (size_t fileSize, char *fileBuffer, char *gamenameFromHttp);
 void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp); /* FS: From Quake 2 */

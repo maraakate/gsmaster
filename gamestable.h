@@ -14,6 +14,7 @@ typedef struct game_table_s
 
 extern game_table_t gameTable[MAX_SUPPORTED_GAMETYPES];
 
-unsigned short GameSpy_Get_Table_Number (char *gamename);
+unsigned short GameSpy_Get_Table_Number (const char *gamename);
+unsigned short GameSpy_Get_GS3D_Port_Offset (const char *gamename, unsigned short port);
 
 #endif // _GAMESTABLE_H

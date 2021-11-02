@@ -743,7 +743,7 @@ static void DropServer (server_t *server)
 	free(server);
 }
 
-static void AddServer (struct sockaddr_in *from, int acknowledge, unsigned short queryPort, char *gamename, char *hostnameIp)
+static void AddServer (struct sockaddr_in *from, int acknowledge, unsigned short queryPort, const char *gamename, char *hostnameIp)
 {
 	server_t	*server = &servers;
 	int			preserved_heartbeats = 0;
@@ -819,12 +819,12 @@ static void AddServer (struct sockaddr_in *from, int acknowledge, unsigned short
 		hostnameIp = inet_ntoa(from->sin_addr);
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
 	DG_strlcpy(server->gamename, gamename, sizeof(server->gamename));
 
 	srand((unsigned)time(NULL));
 
 	server->port = queryPort;
+	server->gs3dport = GameSpy_Get_GS3D_Port_Offset(gamename, server->port);
 	server->shutdown_issued = 0;
 	server->queued_pings = 0;
 	server->last_ping = (unsigned long)time(NULL)-(rand()%heartbeatInterval); /* FS: Don't ping a bunch of stuff at the same time */
@@ -1179,7 +1179,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !stricmp(server->gamename, gamename) && server->ip.sin_port && server->port != 0)
 		{
 			memcpy(buff + buflen, &server->ip.sin_addr, 4);
 			buflen += 4;
@@ -1211,7 +1211,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
-static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challengeKey, int encType, struct sockaddr_in *from, bool uncompressed)
+static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const char *challengeKey, int encType, struct sockaddr_in *from, bool bCompressed)
 {
 	unsigned char	*buff;
 	int				buflen = 0;
@@ -1236,9 +1236,7 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 		return;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
-
-	if (uncompressed)
+	if (bCompressed == false)
 	{
 		memcpy(buff, listheader, 1);
 		buflen += 1;
@@ -1250,11 +1248,54 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 	{
 		server = server->next;
 
-		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gamename))
+		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !stricmp(server->gamename, gamename))
 		{
 			ip = inet_ntoa(server->ip.sin_addr);
 
-			if (uncompressed)
+			if (bCompressed)
+			{
+				if ((encType != GAMESPY_ENCTYPE1) && (buflen + 6 >= MAX_GSPY_MTU_SIZE))
+				{
+					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
+					{
+						free(buff);
+						Con_DPrintf("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+						return;
+					}
+					memset(buff, 0, maxsize);
+					buflen = 0;
+				}
+
+				if (buflen + 6 >= maxsize)
+				{
+					unsigned char *temp;
+
+					maxsize += GSPY_BUFFER_GROWBY_SIZE;
+					temp = realloc(buff, maxsize);
+					if (!temp)
+					{
+						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
+						free(buff);
+						return;
+					}
+					buff = temp;
+				}
+
+				memcpy(buff + buflen, &server->ip.sin_addr, 4);
+				buflen += 4;
+				if (encType == GAMESPY_ENCTYPE1)
+				{
+					memcpy(buff + buflen, &server->gs3dport, 2);
+				}
+				else
+				{
+					memcpy(buff + buflen, &server->port, 2);
+				}
+				buflen += 2;
+				servercount++;
+			}
+			else
 			{
 				if ((encType != GAMESPY_ENCTYPE1) && (buflen + 3 + 16 + 1 + 6 >= MAX_GSPY_MTU_SIZE))
 				{
@@ -1291,72 +1332,23 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 				memcpy(buff + buflen, ":", 1); // 1
 				buflen += 1;
 
-				sprintf(port, "%d\\", ntohs(server->port));
+				if (encType == GAMESPY_ENCTYPE1)
+				{
+					sprintf(port, "%d\\", ntohs(server->gs3dport));
+				}
+				else
+				{
+					sprintf(port, "%d\\", ntohs(server->port));
+				}
 				memcpy(buff + buflen, port, DG_strlen(port)); // 6
 				buflen += DG_strlen(port);
 				servercount++;
 			}
-			else
-			{
-				if ((encType != GAMESPY_ENCTYPE1) && (buflen + 6 >= MAX_GSPY_MTU_SIZE))
-				{
-					Con_DPrintf("[I] Sending chunked packet to %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
-					if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
-					{
-						free(buff);
-						Con_DPrintf("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
-						return;
-					}
-					memset(buff, 0, maxsize);
-					buflen = 0;
-				}
 
-				if (buflen + 6 >= maxsize)
-				{
-					unsigned char *temp;
-
-					maxsize += GSPY_BUFFER_GROWBY_SIZE;
-					temp = realloc(buff, maxsize);
-					if (!temp)
-					{
-						Con_DPrintf("[E] Couldn't grow temporary buffer!\n");
-						free(buff);
-						return;
-					}
-					buff = temp;
-				}
-
-				memcpy(buff + buflen, &server->ip.sin_addr, 4);
-				buflen += 4;
-				memcpy(buff + buflen, &server->port, 2);
-				buflen += 2;
-				servercount++;
-			}
 		}
 	}
 
-	if (uncompressed)
-	{
-		if (encType != GAMESPY_ENCTYPE1)
-		{
-			if (buflen + 6 >= MAX_GSPY_MTU_SIZE)
-			{
-				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
-				if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
-				{
-					free(buff);
-					Con_DPrintf("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
-					return;
-				}
-				memset(buff, 0, maxsize);
-				buflen = 0;
-			}
-
-			memcpy(buff + buflen, finalstring, 6);
-			buflen += 6;
-		}
-	}
-	else
+	if (bCompressed)
 	{
 		if (encType != GAMESPY_ENCTYPE1) /* FS: This COULD be added to enctype1 and GS3D will process it just fine, but this is non-standard and it breaks Aluigi gslist. */
 		{
@@ -1390,6 +1382,27 @@ static void SendGameSpyListToClient (SOCKET socket, char *gamename, char *challe
 
 			memcpy(buff + buflen, "\\", 1);
 			buflen += 1;
+			memcpy(buff + buflen, finalstring, 6);
+			buflen += 6;
+		}
+	}
+	else
+	{
+		if (encType != GAMESPY_ENCTYPE1)
+		{
+			if (buflen + 6 >= MAX_GSPY_MTU_SIZE)
+			{
+				Con_DPrintf("[I] Sending chunked packet before final to %s:%d\n", inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+				if (send(socket, buff, buflen, 0) == SOCKET_ERROR)
+				{
+					free(buff);
+					Con_DPrintf("[E] TCP list socket error on send! code %s.\n", NET_ErrorString());
+					return;
+				}
+				memset(buff, 0, maxsize);
+				buflen = 0;
+			}
+
 			memcpy(buff + buflen, finalstring, 6);
 			buflen += 6;
 		}
@@ -2251,7 +2264,7 @@ void signal_handler (int sig)
 
 #endif
 
-static void GameSpy_Send_MOTD (char *gamename, struct sockaddr_in *from)
+static void GameSpy_Send_MOTD (const char *gamename, struct sockaddr_in *from)
 {
 	SOCKET motdSocket;
 	char motd[MOTD_SIZE];
@@ -2346,7 +2359,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 	char *ret = NULL;
 	char logBuffer[2048];
 	char *queryPtr;
-	bool uncompressed = false;
+	bool bCompressed = false;
 
 	if (!querystring || !strstr(querystring, "\\list\\") || !strstr(querystring, "\\gamename\\"))
 	{
@@ -2363,7 +2376,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 
 		ret += 19;
 		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
-		uncompressed = false;
+		bCompressed = true;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
 	else /* FS: Older style that sends out "basic" style lists */
@@ -2383,7 +2396,7 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 
 		ret += 10;
 		gamename = DK_strtok_r(ret, "\\\n", &queryPtr);
-		uncompressed = true;
+		bCompressed = false;
 		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
 	}
 
@@ -2394,8 +2407,6 @@ error:
 		send(tcpSocket, finalstringerror, DG_strlen(finalstringerror), 0);
 		return;
 	}
-
-	DK_strlwr(gamename); /* FS: Some games (mainly SiN) send it partially uppercase */
 
 	if (bMotd)
 	{
@@ -2408,7 +2419,7 @@ error:
 		Log_Sucessful_TCP_Connections(logBuffer);
 	}
 
-	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, uncompressed);
+	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, bCompressed);
 }
 
 static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, int enctype)
@@ -2459,15 +2470,15 @@ static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validate
 		return false;
 	}
 
-	DG_strlcpy(gameKey,ptr,sizeof(gameKey));
+	DG_strlcpy(gameKey, ptr, sizeof(gameKey));
 
-	if (!strcmp(gameKey,"nolf") && rawsecurekey)
+	if (!stricmp(gameKey, "nolf") && rawsecurekey)
 	{
 		Con_DPrintf("[I] NOLF does not respond to \\secure\\ from servers.  Skipping Validation.\n");
 		return true;
 	}
 
-	if (!strcmp(gameKey,"heretic2"))
+	if (!stricmp(gameKey, "heretic2"))
 	{
 		Con_DPrintf("[I] Heretic2 does not respond to \\secure\\ from servers.  Skipping validation.\n");
 		return true;
@@ -3177,16 +3188,16 @@ static void Master_DL_List (char *filename)
 		from.sin_family = AF_INET;
 		from.sin_port = htons(queryPort);
 
-		if (!strcmp(listToken, "quakeworld"))
+		if (!stricmp(listToken, "quakeworld"))
 		{
 			sendto(listener, (char *)qw_msg, sizeof(qw_msg), 0, (struct sockaddr *)&from, sizeof(from));
 		}
-		else if (!strcmp(listToken, "hexenworld"))
+		else if (!stricmp(listToken, "hexenworld"))
 		{
 			sendto(listener, (char *)hw_gspy_msg, sizeof(hw_gspy_msg), 0, (struct sockaddr *)&from, sizeof(from));
 			sendto(listener, (char *)hw_hwq_msg, sizeof(hw_hwq_msg), 0, (struct sockaddr *)&from, sizeof(from));
 		}
-		else if (!strcmp(listToken, "quake2"))
+		else if (!stricmp(listToken, "quake2"))
 		{
 			/* FS: This is stupid because there's gloom and other things and yeah... so let's try all options. */
 			sendto(listener, (char *)q2_msg, sizeof(q2_msg), 0, (struct sockaddr *)&from, sizeof(from));
@@ -3361,7 +3372,7 @@ void GenerateServersList (void)
 		{
 			server = server->next;
 
-			if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !strcmp(server->gamename, gameTable[i].gamename) && server->ip.sin_port && server->port != 0)
+			if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !stricmp(server->gamename, gameTable[i].gamename) && server->ip.sin_port && server->port != 0)
 			{
 				Com_sprintf(tempStr, sizeof(tempStr), "%s:%d\n", inet_ntoa(server->ip.sin_addr), ntohs(server->port));
 				fwrite((char *)tempStr, 1, DG_strlen(tempStr), listFile);

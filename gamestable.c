@@ -14,6 +14,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include "master.h"
 #include "dk_essentials.h"
 #include "gamestable.h"
 
@@ -41,7 +42,7 @@ game_table_t gameTable[MAX_SUPPORTED_GAMETYPES] =
 	{NULL, NULL}
 };
 
-const char *GameSpy_Get_Game_SecKey (char *gamename)
+const char *GameSpy_Get_Game_SecKey (const char *gamename)
 {
 	int x = 0;
 
@@ -50,11 +51,9 @@ const char *GameSpy_Get_Game_SecKey (char *gamename)
 		return NULL;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
-
 	while (gameTable[x].gamename != NULL)
 	{
-		if(!strcmp(gamename, gameTable[x].gamename))
+		if (!stricmp(gamename, gameTable[x].gamename))
 		{
 			return gameTable[x].seckey;
 		}
@@ -64,7 +63,7 @@ const char *GameSpy_Get_Game_SecKey (char *gamename)
 	return NULL;
 }
 
-unsigned short GameSpy_Get_MOTD_Port (char *gamename)
+unsigned short GameSpy_Get_MOTD_Port (const char *gamename)
 {
 	int x = 0;
 
@@ -73,11 +72,9 @@ unsigned short GameSpy_Get_MOTD_Port (char *gamename)
 		return 0;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
-
 	while (gameTable[x].gamename != NULL)
 	{
-		if(!strcmp(gamename, gameTable[x].gamename))
+		if (!stricmp(gamename, gameTable[x].gamename))
 		{
 			return gameTable[x].motdPort;
 		}
@@ -88,7 +85,7 @@ unsigned short GameSpy_Get_MOTD_Port (char *gamename)
 	return 0;
 }
 
-unsigned short GameSpy_Get_Table_Number (char *gamename)
+unsigned short GameSpy_Get_Table_Number (const char *gamename)
 {
 	unsigned short x = 0;
 
@@ -97,11 +94,9 @@ unsigned short GameSpy_Get_Table_Number (char *gamename)
 		return 0;
 	}
 
-	DK_strlwr(gamename); /* FS: Some games (mainly sin) send it partially uppercase */
-
 	while (gameTable[x].gamename != NULL)
 	{
-		if (!strcmp(gamename, gameTable[x].gamename))
+		if (!stricmp(gamename, gameTable[x].gamename))
 		{
 			return x;
 		}
@@ -110,4 +105,19 @@ unsigned short GameSpy_Get_Table_Number (char *gamename)
 	}
 
 	return 65535;
+}
+
+unsigned short GameSpy_Get_GS3D_Port_Offset (const char *gamename, unsigned short port)
+{
+	unsigned short port_fix;
+
+	if (!stricmp(gamename, "sin"))
+	{
+		port_fix = ntohs(port);
+		port_fix++;
+
+		return htons(port_fix);
+	}
+
+	return port;
 }
