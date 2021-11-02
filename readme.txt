@@ -1,4 +1,4 @@
-GameSpy Encode Type 0 and Encode Type 1 Emulator 0.6 by [HCI]Maraakate
+GameSpy Encode Type 0 and Encode Type 1 Emulator 0.7 by [HCI]Maraakate
 
 ==========================
 1. Welcome
