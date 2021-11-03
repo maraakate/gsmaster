@@ -112,6 +112,9 @@ static double lastServerListGeneration;
 static double serverListGenerationTime = DEFAULTSERVERLISTGENERATIONTIME;
 static bool bGenerateServerList;
 
+static const char dbFileName[] = "gsmaster.db";
+static double lastDBSave;
+
 /* FS: For GameSpy list */
 static const char listheader[] = "\\";
 static const char finalstring[] = "final\\";
@@ -588,7 +591,7 @@ int gsmaster_main (int argc, char **argv)
 
 		CURL_HTTP_Update();
 
-		if ((double)time(NULL) - lastMasterListDL > 3600.0) /* FS: Every hour get a new serverlist from QTracker */
+		if ((double)time(NULL) - lastMasterListDL > MASTERLISTDLTIME) /* FS: Every hour get a new serverlist from QTracker */
 		{
 			HTTP_DL_List();
 
@@ -596,6 +599,12 @@ int gsmaster_main (int argc, char **argv)
 			{
 				Master_DL_List(masterserverlist_filename);
 			}
+		}
+
+		if ((double)time(NULL) - lastDBSave > DBSAVETIME)
+		{
+			GenerateMasterDBBlob();
+			lastDBSave = (double)time(NULL);
 		}
 
 		if (bGenerateServerList && ((double)time(NULL) - lastServerListGeneration > serverListGenerationTime))
@@ -3395,10 +3404,10 @@ void GenerateMasterDBBlob (void)
 	size_t buflen = 0;
 	size_t maxsize = (8 * numservers) + 2; /* FS: 6+2 for IP and port.  2 for version number. */
 
-	dbFile = fopen("gsmaster.db", "wb");
+	dbFile = fopen(dbFileName, "wb");
 	if (!dbFile)
 	{
-		Con_DPrintf("[E] Failed to open gsmaster.db for writing!\n");
+		Con_DPrintf("[E] Failed to open %s for writing!\n", dbFileName);
 		return;
 	}
 
@@ -3409,6 +3418,8 @@ void GenerateMasterDBBlob (void)
 		fclose(dbFile);
 		return;
 	}
+
+	Con_DPrintf("Writing out %s.\n", dbFileName);
 
 	memcpy(buff + buflen, &version, 2);
 	buflen += 2;
@@ -3449,10 +3460,10 @@ void ReadMasterDBBlob (void)
 	struct sockaddr_in from;
 	struct hostent *remoteHost;
 
-	dbFile = fopen("gsmaster.db", "rb");
+	dbFile = fopen(dbFileName, "rb");
 	if (!dbFile)
 	{
-		Con_DPrintf("[E] Failed to open gsmaster.db for reading!\n");
+		Con_DPrintf("[E] Failed to open %s for reading!\n", dbFileName);
 		return;
 	}
 
@@ -3478,7 +3489,7 @@ void ReadMasterDBBlob (void)
 
 	if (fileSize < 8)
 	{
-		Con_DPrintf("[W] Empty gsmaster.db file.  Aborting.\n");
+		Con_DPrintf("[W] Empty %s file.  Aborting.\n", dbFileName);
 		fclose(dbFile);
 		return;
 	}

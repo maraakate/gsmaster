@@ -1,4 +1,4 @@
-TODO as of 10/31/21
+TODO as of 11/02/21
 
 * SmartSpy filtering is ignored.  So you cannot do requests like
   asking for only full or empty servers, specific mods, regions, players, etc.
@@ -6,8 +6,6 @@ TODO as of 10/31/21
 * For either of the above to work the results of game server queries need to
   be parsed and saved in the server list struct.
 * It would probably make sense to save this into the gsmaster.db eventually.
-* Periodically save gsmaster.db in case the master server or host
-  machine crashes.
 * EncType 2 and EncType 'X' support.
 * UT2003/2004 support.
 * Get Unreal 1 and UT99 query working.

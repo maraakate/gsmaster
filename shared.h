@@ -32,6 +32,8 @@ typedef enum {false, true} bool;
 #define MAX_GAMENAME_LEN 16 /* FS: Max gamename length used for game table and server structs */
 #define DEFAULTHEARTBEAT (5*60) /* FS: 5 minutes */
 #define DEFAULTSERVERLISTGENERATIONTIME (2.0*60.0) /* FS: 2 minutes */
+#define MASTERLISTDLTIME (60.0*60.0) /* FS: 60 minutes */
+#define DBSAVETIME (60.0*60.0) /* FS: 60 minutes */
 
 #define GAMESPY_VALIDATION_REQUIRED_OFF 0
 #define GAMESPY_VALIDATION_REQUIRED_CLIENTS_ONLY 1
