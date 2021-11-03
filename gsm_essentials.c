@@ -31,8 +31,7 @@ void Com_sprintf (char *dest, size_t size, const char *fmt, ...)
 	va_list	argptr;
 
 	va_start(argptr, fmt);
-	//	vsprintf(dest, fmt, argptr);
-	DK_vsnprintf(dest, size, fmt, argptr);
+	GSM_vsnprintf(dest, size, fmt, argptr);
 	// TODO: print warning if cut off!
 	va_end(argptr);
 }
@@ -67,8 +66,7 @@ void Con_DPrintf (const char *fmt, ...)
 		return;
 
 	va_start(argptr, fmt);
-	//	vsprintf(msg,fmt,argptr);
-	DK_vsnprintf(msg, sizeof(msg), fmt, argptr);	// Knightmare 10/28/12- buffer-safe version
+	GSM_vsnprintf(msg, sizeof(msg), fmt, argptr);	// Knightmare 10/28/12- buffer-safe version
 	va_end(argptr);
 
 	if (timestamp)

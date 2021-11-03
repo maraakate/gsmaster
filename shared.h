@@ -54,7 +54,7 @@ typedef enum {false, true} bool;
 #define MAX_DNS_NAMELEN 254
 #define MAX_PORT_LEN 5
 #define MAX_SERVERLIST_LINE (MAX_DNS_NAMELEN+1+MAX_PORT_LEN+1+MAX_GAMENAME_LEN) /* FS: 1 == ',' separator */
-#define MAX_GSPY_VAL 89 /* FS: See gsmalg.cpp */
+#define MAX_GSPY_VAL 89 /* FS: See gsmalg.c */
 
 #define MOTD_SIZE 1024
 
@@ -91,14 +91,13 @@ extern bool bMinidumpAutogen;
 // Knightmare 05/27/12- buffer-safe variant of vsprintf
 // This may be different on different platforms, so it's abstracted
 #ifdef _MSC_VER	// _WIN32
-//#define DK_vsnprintf _vsnprintf
-__inline int DK_vsnprintf (char *Dest, size_t Count, const char *Format, va_list Args) {
+__inline int GSM_vsnprintf (char *Dest, size_t Count, const char *Format, va_list Args) {
 	int ret = _vsnprintf(Dest, Count, Format, Args);
 	Dest[Count-1] = 0;	// null terminate
 	return ret;
 }
 #else
-#define DK_vsnprintf vsnprintf
+#define GSM_vsnprintf vsnprintf
 #endif // _MSC_VER
 
 #endif // SHARED_H
