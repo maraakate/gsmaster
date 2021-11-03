@@ -111,7 +111,7 @@ static unsigned char gsvalfunc (int reg)
 	return(0);
 }
 
-unsigned char *gsseckey (unsigned char *dst, unsigned char *src, unsigned char *key, int enctype)
+unsigned char *gsseckey (unsigned char *dst, unsigned char *src, unsigned char *key, unsigned short enctype)
 {
 	size_t i, size, keysz;
 	unsigned char enctmp[256], tmp[66], x, y, z, a, b, *p;

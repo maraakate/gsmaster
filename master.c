@@ -198,7 +198,7 @@ static const unsigned char q2_msg_noOOB[] =
 static const unsigned char q2_msg_alternate_noOOB[] =
 		{ 'q', 'u', 'e', 'r', 'y', '\0'};
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, int enctype);
+static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, unsigned short enctype);
 static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from);
 static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from);
 static void Check_Port_Boundaries (void);
@@ -1220,7 +1220,7 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
-static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const char *challengeKey, int encType, struct sockaddr_in *from, bool bCompressed)
+static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const char *challengeKey, unsigned short encType, struct sockaddr_in *from, bool bCompressed)
 {
 	unsigned char	*buff;
 	int				buflen = 0;
@@ -2362,7 +2362,7 @@ static void GameSpy_Send_MOTD (const char *gamename, struct sockaddr_in *from)
 	motdSocket = INVALID_SOCKET; //-V1001
 }
 
-static void GameSpy_Parse_List_Request (char *clientName, char *querystring, char *challengeKey, int encType, SOCKET socket, struct sockaddr_in *from)
+static void GameSpy_Parse_List_Request (char *clientName, char *querystring, char *challengeKey, unsigned short encType, SOCKET socket, struct sockaddr_in *from)
 {
 	char *gamename = NULL;
 	char *ret = NULL;
@@ -2431,7 +2431,7 @@ error:
 	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, bCompressed);
 }
 
-static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, int enctype)
+static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, unsigned short enctype)
 {
 	char *ptr = NULL;
 	char validateKey[MAX_INFO_STRING];
@@ -2527,7 +2527,7 @@ static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from)
 	int retry = 0;
 	int sleepMs;
 	int challengeBufferLen = 0;
-	int encodetype = 0;
+	unsigned short encodetype = 0;
 	char *challengeKey;
 	char *challengeBuffer = NULL;
 	char *enctypeKey = NULL;
@@ -2625,10 +2625,26 @@ retryIncomingTcpValidate:
 	enctypeKey = Info_ValueForKey(incomingTcpValidate, "enctype");
 	if (enctypeKey && enctypeKey[0] != 0)
 	{
-		encodetype = atoi(enctypeKey);
+		int encodeTypeTest = atoi(enctypeKey);
+		if (encodeTypeTest > USHRT_MAX)
+		{
+			encodetype = USHRT_MAX;
+		}
+		else if (encodeTypeTest < 0)
+		{
+			encodetype = USHRT_MAX;
+		}
+		else
+		{
+			encodetype = encodeTypeTest;
+		}
+
+		printf("%u\n", USHRT_MAX);
 		if (encodetype > GAMESPY_ENCTYPE1)
 		{
-			Con_DPrintf("[E] Encode Type: %d not supported on this server\n", encodetype);
+			char buffer[128] = { 0 };
+			Com_sprintf("\\error\\encode_type_%u_not_supported_on_this_server\\%s", encodetype, finalstring);
+			send(socket, buffer, DG_strlen(buffer), 0);
 			goto closeTcpSocket;
 		}
 	}
@@ -2903,9 +2919,9 @@ static void Check_Port_Boundaries (void)
 		DG_strlcpy(bind_port,"27900", 6);
 		udp = 27900;
 	}
-	else if (udp > 65536)
+	else if (udp > USHRT_MAX)
 	{
-		printf("[W] UDP Port is greater than 65536!  Setting to default value of 27900\n");
+		printf("[W] UDP Port is greater than %u!  Setting to default value of 27900\n", USHRT_MAX);
 		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
 		DG_strlcpy(bind_port,"27900", 6);
 		udp = 27900;
@@ -2918,9 +2934,9 @@ static void Check_Port_Boundaries (void)
 		DG_strlcpy(bind_port_tcp,"28900", 6);
 		tcp = 28900;
 	}
-	else if (tcp > 65536)
+	else if (tcp > USHRT_MAX)
 	{
-		printf("[W] TCP Port is greater than 65536!  Setting to default value of 28900\n");
+		printf("[W] TCP Port is greater than %d!  Setting to default value of 28900\n", USHRT_MAX);
 		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
 		DG_strlcpy(bind_port_tcp,"28900", 6);
 		tcp = 28900;
