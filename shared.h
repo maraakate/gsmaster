@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-#if defined(_MSC_VER) && (_MSC_VER < 1400)
-	typedef unsigned int uintptr_t;
+#ifdef _MSC_VER
+#include "win32\msinttypes\stdint.h"
 #endif
 #define DG_MISC_NO_GNU_SOURCE
 #include "dg_misc.h" /* FS: Caedes special safe string stuff */
