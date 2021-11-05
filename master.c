@@ -198,16 +198,16 @@ static const unsigned char q2_msg_noOOB[] =
 static const unsigned char q2_msg_alternate_noOOB[] =
 		{ 'q', 'u', 'e', 'r', 'y', '\0'};
 
-static bool GameSpy_Challenge_Cross_Check(char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, unsigned short enctype);
+static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, unsigned short enctype);
 static void GameSpy_Parse_TCP_Packet (SOCKET socket, struct sockaddr_in *from);
 static void Parse_UDP_Packet (SOCKET connection, int len, struct sockaddr_in *from);
 static void Check_Port_Boundaries (void);
-static struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp);
+static struct in_addr Hostname_to_IP (struct in_addr *server, const char *hostnameIp);
 static void RunFrame (void);
 static void Rcon (struct sockaddr_in *from, char *queryString);
 static void HTTP_DL_List(void);
-static void Master_DL_List(char *filename);
-static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size);
+static void Master_DL_List (const char *filename);
+static void Parse_UDP_MS_List (unsigned char *tmp, const char *gamename, int size);
 static void GenerateServersList (void);
 static void GenerateMasterDBBlob (void);
 static void ReadMasterDBBlob (void);
@@ -439,12 +439,11 @@ static void NET_Init (void)
 #endif
 }
 
-//
-// This becomes main for Linux
-// In Windows, main is in service.c and it decides if we're going to see a console or not
-// this function gets called when we have decided if we are a server or a console app.
-//
-//int gsmaster_main (int argc, char *argv[])
+/*
+ * This becomes main for Linux
+ * In Windows, main is in service.c and it decides if we're going to see a console or not
+ * this function gets called when we have decided if we are a server or a console app.
+ */
 int gsmaster_main (int argc, char **argv)
 {
 	int len;
@@ -702,10 +701,10 @@ static __inline void Close_TCP_Socket_On_Error (SOCKET socket, struct sockaddr_i
 	socket = INVALID_SOCKET; //-V1001
 }
 
-//
-// Called by ServiceCtrlHandler after the server loop is dead
-// this frees the server memory allocations.
-//
+/*
+ * Called by ServiceCtrlHandler after the server loop is dead
+ * this frees the server memory allocations.
+ */
 static void ExitNicely (void)
 {
 	server_t	*server;
@@ -923,10 +922,10 @@ static void AddServer (struct sockaddr_in *from, int acknowledge, unsigned short
 	}
 }
 
-//
-// We received a shutdown frame from a server, set the shutdown flag
-// for it and send it a ping to ack the shutdown frame.
-//
+/*
+ * We received a shutdown frame from a server, set the shutdown flag
+ * for it and send it a ping to ack the shutdown frame.
+ */
 static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 {
 	server_t	*server = &servers;
@@ -1008,11 +1007,11 @@ static void QueueShutdown (struct sockaddr_in *from, server_t *myserver)
 	}
 }
 
-//
-// Walk the server list and ping them as needed, age the ones
-// we have not heard from in a while and when they get too
-// old, remove them from the list.
-//
+/*
+ * Walk the server list and ping them as needed, age the ones
+ * we have not heard from in a while and when they get too
+ * old, remove them from the list.
+ */
 static void RunFrame (void)
 {
 	server_t		*server = &servers;
@@ -1104,11 +1103,11 @@ static void RunFrame (void)
 	}
 }
 
-//
-// This function assembles the reply header preamble and 6 bytes for each
-// listed server into a buffer for transmission to the client in response
-// to a query frame.
-//
+/*
+ * This function assembles the reply header preamble and 6 bytes for each
+ * listed server into a buffer for transmission to the client in response
+ * to a query frame.
+ */
 static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gamename)
 {
 	int				buflen = 0;
@@ -1353,7 +1352,6 @@ static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const 
 				buflen += DG_strlen(port);
 				servercount++;
 			}
-
 		}
 	}
 
@@ -1424,6 +1422,8 @@ static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const 
 
 		/* FS: If we don't send something then GS3D shows the icon as "red".
 		 *     \\final\\ is not part of standard protocol from old Aluigi dumps, but GS3D responds to it so... */
+		/* FS [11-04-2021]: Per conversation with Jack 'Morbid' Mathews this was a bug in GS3D.  It's unknown
+		                    what the master sent, but this will avoid the bug in GS3D's parsing code. */
 		if (buflen == 0)
 		{
 			memcpy(buff + buflen, "\\", 1);
@@ -2077,11 +2077,11 @@ void ParseCommandLine (int argc, char **argv)
 	}
 }
 
-//
-// This stuff plus a modified service.c and service.h
-// from the Microsoft examples allows this application to be
-// installed as a Windows service.
-//
+/*
+ * This stuff plus a modified service.c and service.h
+ * from the Microsoft examples allows this application to be
+ * installed as a Windows service.
+ */
 #ifdef _WIN32
 void ServiceCtrlHandler (DWORD Opcode)
 {
@@ -2118,6 +2118,7 @@ void ServiceCtrlHandler (DWORD Opcode)
 
 			return;
 	}
+
 	// Send current status.
 	SetServiceStatus (MyServiceStatusHandle, &MyServiceStatus);
 }
@@ -2167,13 +2168,13 @@ void ServiceStop (void)
 }
 
 /*
-* This sets the registry keys in "HKLM/Software/Q2MasterServer" so we can tell
-* the service what IP address or port to bind to when starting up. If it's not preset
-* the service will bind to 0.0.0.0:27900. Not critical on most Windows boxes
-* but it can be a pain if you want to use multiple IP's on a NIC and don't want the
-* service listening on all of them. Not as painful on Linux, we do the -ip switch
-* in the command line.
-*/
+ * This sets the registry keys in "HKLM/Software/Q2MasterServer" so we can tell
+ * the service what IP address or port to bind to when starting up. If it's not preset
+ * the service will bind to 0.0.0.0:27900. Not critical on most Windows boxes
+ * but it can be a pain if you want to use multiple IP's on a NIC and don't want the
+ * service listening on all of them. Not as painful on Linux, we do the -ip switch
+ * in the command line.
+ */
 void SetGSMasterRegKey (const char* name, const char *value)
 {
 	HKEY	hKey;
@@ -2203,12 +2204,12 @@ void SetGSMasterRegKey (const char* name, const char *value)
 	RegCloseKey(hKey);
 }
 
-//
-// As as Service, get the key and use the IP address stored there.
-// If the key doesn't exist, it will be created.
-// The user can add the Bind_IP or Bind_Port value
-// by hand or use the -ip x.x.x.x command line switch.
-//
+/*
+ * As as Service, get the key and use the IP address stored there.
+ * If the key doesn't exist, it will be created.
+ * The user can add the Bind_IP or Bind_Port value
+ * by hand or use the -ip x.x.x.x command line switch.
+ */
 void GetGSMasterRegKey (const char* name, const char *value)
 {
 	HKEY	hKey;
@@ -2242,9 +2243,9 @@ void GetGSMasterRegKey (const char* name, const char *value)
 
 #else	// not doing windows
 
-//
-// handle Linux and BSD signals
-//
+/*
+ * handle Linux and BSD signals
+ */
 void signal_handler (int sig)
 {
 	switch (sig)
@@ -2747,7 +2748,7 @@ closeTcpSocket:
 	tcpSocket = INVALID_SOCKET;
 }
 
-void Add_Servers_From_List (char *filename, char *gamename)
+void Add_Servers_From_List (const char *filename, char *gamename)
 {
 	char *fileBuffer = NULL;
 	long fileSize;
@@ -2880,7 +2881,7 @@ void AddServers_From_List_Execute (char *fileBuffer, char *gamenameFromHttp)
 	}
 }
 
-static struct in_addr Hostname_to_IP (struct in_addr *server, char *hostnameIp)
+static struct in_addr Hostname_to_IP (struct in_addr *server, const char *hostnameIp)
 {
 	struct hostent *remoteHost;
 	struct in_addr addr = {0};
@@ -3097,7 +3098,7 @@ static void HTTP_DL_List (void)
 #endif
 }
 
-static void Master_DL_List (char *filename)
+static void Master_DL_List (const char *filename)
 {
 	char *fileBuffer = NULL;
 	char *ip = NULL;
@@ -3184,7 +3185,6 @@ static void Master_DL_List (char *filename)
 		free(ip);
 		ip = NULL;
 
-
 		addr.s_addr = *(u_long *) remoteHost->h_addr_list[0];
 
 		listToken = GSM_strtok_r(NULL, separators, &listPtr); // Port
@@ -3247,7 +3247,7 @@ static void Master_DL_List (char *filename)
 }
 
 /* FS: Readapted from HWMQuery by sezero */
-static void Parse_UDP_MS_List (unsigned char *tmp, char *gamename, int size)
+static void Parse_UDP_MS_List (unsigned char *tmp, const char *gamename, int size)
 {
 	unsigned short port = 0;
 	char ip[128];

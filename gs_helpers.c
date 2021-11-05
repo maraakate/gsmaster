@@ -80,6 +80,7 @@ const char *GameSpy_Get_Game_SecKey (const char *gamename)
 
 		x++;
 	}
+
 	return NULL;
 }
 
@@ -124,7 +125,7 @@ unsigned short GameSpy_Get_Table_Number (const char *gamename)
 		x++;
 	}
 
-	return 65535;
+	return USHRT_MAX;
 }
 
 unsigned short GameSpy_Get_GS3D_Port_Offset (const char *gamename, unsigned short port)
