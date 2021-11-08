@@ -1689,11 +1689,19 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	char *cmd = data;
 	char *line = data;
 	char packetData[64] = { 0 };
+	int parsedLen = 0;
 	unsigned char *mslist = (unsigned char *)data;
 
-	while (*line && *line != '\n')
+	while ((*line) && (parsedLen <= dglen))
 	{
+		if ((*line == '\n') && (parsedLen + 1 <= dglen)) /* FS: This can happen and GS3D already handles bad '\n' in status packets, so do it here. */
+		{
+			line++;
+			parsedLen++;
+			memmove((data+parsedLen)-1, line, dglen-parsedLen); /* FS: Shift past the '\n'. */
+		}
 		line++;
+		parsedLen++;
 	}
 
 	*(line++) = '\0';
@@ -1838,7 +1846,7 @@ void ParseCommandLine (int argc, char **argv)
 	{
 		if (debug == 3)
 		{
-			if (!strnicmp(argv[i] + 1,"debug", 5))
+			if (!strnicmp(argv[i] + 1, "debug", 5))
 			{
 				debug = TRUE;	//service debugged as console
 			}
@@ -2662,7 +2670,7 @@ retryIncomingTcpValidate:
 	}
 
 	/* FS: This is the later version of GameSpy which sent it all as one packet. */
-	if (strstr(incomingTcpValidate,"\\list\\"))
+	if (strstr(incomingTcpValidate, "\\list\\"))
 	{
 		GameSpy_Parse_List_Request(clientName, incomingTcpValidate, challengeKey, encodetype, socket, from);
 		goto closeTcpSocket;
@@ -2917,14 +2925,14 @@ static void Check_Port_Boundaries (void)
 	{
 		printf("[W] UDP Port is 0!  Setting to default value of 27900\n");
 		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
-		DG_strlcpy(bind_port,"27900", 6);
+		DG_strlcpy(bind_port, "27900", 6);
 		udp = 27900;
 	}
 	else if (udp > USHRT_MAX)
 	{
 		printf("[W] UDP Port is greater than %u!  Setting to default value of 27900\n", USHRT_MAX);
 		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
-		DG_strlcpy(bind_port,"27900", 6);
+		DG_strlcpy(bind_port, "27900", 6);
 		udp = 27900;
 	}
 
@@ -2932,14 +2940,14 @@ static void Check_Port_Boundaries (void)
 	{
 		printf("[W] TCP Port is 0!  Setting to default value of 28900\n");
 		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
-		DG_strlcpy(bind_port_tcp,"28900", 6);
+		DG_strlcpy(bind_port_tcp, "28900", 6);
 		tcp = 28900;
 	}
 	else if (tcp > USHRT_MAX)
 	{
 		printf("[W] TCP Port is greater than %d!  Setting to default value of 28900\n", USHRT_MAX);
 		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
-		DG_strlcpy(bind_port_tcp,"28900", 6);
+		DG_strlcpy(bind_port_tcp, "28900", 6);
 		tcp = 28900;
 	}
 
@@ -2948,8 +2956,8 @@ static void Check_Port_Boundaries (void)
 		printf("[W] UDP and TCP Ports are the same values!  Setting to defaults.\n");
 		SetGSMasterRegKey(REGKEY_BIND_PORT, "27900");
 		SetGSMasterRegKey(REGKEY_BIND_PORT_TCP, "28900");
-		DG_strlcpy(bind_port,"27900", 6);
-		DG_strlcpy(bind_port_tcp,"28900", 6);
+		DG_strlcpy(bind_port, "27900", 6);
+		DG_strlcpy(bind_port_tcp, "28900", 6);
 	}
 }
 

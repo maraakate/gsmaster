@@ -96,7 +96,6 @@ void signal_handler(int sig);
 
 typedef struct server_s server_t;
 
-typedef enum {waiting, inuse} pingstate;
 struct server_s
 {
 	server_t		*prev;
