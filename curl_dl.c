@@ -297,10 +297,13 @@ void CURL_HTTP_Update (void)
 		if (msg->msg == CURLMSG_DONE)
 		{
 			long        response_code;
+			char *curlRetPtr;
 			curl_helper_t *ptr;
 
 			curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
-			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &ptr);
+			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &curlRetPtr);
+
+			ptr = (curl_helper_t *)curlRetPtr; /* FS: GCC attributes enforce the char * */
 
 			Con_DPrintf("HTTP URL response code: %li\n", response_code);
 

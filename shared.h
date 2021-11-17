@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits.h>
 #ifdef _MSC_VER
 #include "win32\msinttypes\stdint.h"
 #endif
