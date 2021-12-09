@@ -640,8 +640,8 @@ int gsmaster_main (int argc, char **argv)
 								ntohs(from.sin_port),
 								NET_ErrorString());
 						}
+						FD_CLR(newConnection, &master);
 					}
-					FD_CLR(newConnection, &master);
 				} //listener
 				//reset for next packet
 				memset(incoming, 0, sizeof(incoming));
@@ -2406,13 +2406,13 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 		}
 		ret += 6;
 
-		ret = strstr(ret, "\\gamename\\");
-		if (!ret || strlen(ret) < 10)
+		ret = strstr(ret, "gamename\\");
+		if (!ret || strlen(ret) < 9)
 		{
 			goto error;
 		}
 
-		ret += 10;
+		ret += 9;
 		gamename = GSM_strtok_r(ret, "\\\n", &queryPtr);
 		bCompressed = false;
 		Con_DPrintf("[I] Sending uncompressed TCP list for %s\n", gamename);
