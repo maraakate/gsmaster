@@ -2328,6 +2328,7 @@ static void GameSpy_Send_MOTD (const char *gamename, struct sockaddr_in *from)
 	if (!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");
+		fclose(f);
 		return;
 	}
 
@@ -2785,6 +2786,7 @@ void Add_Servers_From_List (const char *filename, char *gamename)
 	if (!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");
+		fclose(listFile);
 		return;
 	}
 
@@ -3053,6 +3055,7 @@ static void HTTP_DL_List (void)
 		{
 			printf("[E] Out of memory!\n");
 			lastMasterListDL = (double)time(NULL);
+			fclose(f);
 			return;
 		}
 
@@ -3147,6 +3150,7 @@ static void Master_DL_List (const char *filename)
 	if (!fileBuffer)
 	{
 		printf("[E] Out of memory!\n");
+		fclose(listFile);
 		return;
 	}
 
@@ -3156,7 +3160,6 @@ static void Master_DL_List (const char *filename)
 	if (toEOF <= 0)
 	{
 		printf("[E] Cannot read file '%s' into memory!\n", filename);
-
 		free(fileBuffer);
 		return;
 	}
@@ -3555,5 +3558,6 @@ void ReadMasterDBBlob (void)
 		AddServer(&from, SendAcknowledge(gamename), htons(port), gamename, ip);
 	}
 
+	fclose(dbFile);
 	free(buff);
 }
