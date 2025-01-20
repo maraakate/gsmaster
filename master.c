@@ -1707,14 +1707,14 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	*(line++) = '\0';
 
 	/* FS: TODO: This actually sends out total number of active players, could be useful for SmartSpy query. */
-	if (!memcmp(incoming, hw_hearbeat_msg, sizeof(hw_hearbeat_msg)))
+	if (!memcmp(incoming, hw_hearbeat_msg, sizeof(hw_hearbeat_msg)-1))
 	{
 		Con_DPrintf("[I] HexenWorld Server sending a heartbeat.\n");
 		Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\hexenworld", ntohs(from->sin_port));
 		HeartBeat(from, packetData);
 		return;
 	}
-	else if (!memcmp(incoming, qw_hearbeat_msg, sizeof(qw_hearbeat_msg)))
+	else if (!memcmp(incoming, qw_hearbeat_msg, sizeof(qw_hearbeat_msg)-1))
 	{
 		Con_DPrintf("[I] QuakeWorld Server sending a heartbeat.\n");
 		Com_sprintf(packetData, sizeof(packetData), "heartbeat\\%d\\gamename\\quakeworld", ntohs(from->sin_port));
@@ -1735,7 +1735,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 		else if (!strnicmp(data, (char *)hw_reply_hdr, sizeof(hw_reply_hdr)-1))
 		{
 			Con_DPrintf("[I] Got a HexenWorld master server list!\n");
-			mslist += sizeof(hw_reply_hdr);
+			mslist += sizeof(hw_reply_hdr)-1;
 			Parse_UDP_MS_List(mslist, hexenworld, dglen-sizeof(hw_reply_hdr));
 			return;
 		}
@@ -1743,7 +1743,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 		{
 			Con_DPrintf("[I] Got a QuakeWorld master server list!\n");
 
-			mslist += sizeof(qw_reply_hdr);
+			mslist += sizeof(qw_reply_hdr)-1;
 			Parse_UDP_MS_List(mslist, quakeworld, dglen-sizeof(qw_reply_hdr)); /* FS: Length is the same, so doesn't really matter what we pass here. */
 			return;
 		}
