@@ -134,6 +134,9 @@ static const int ackstringlen = sizeof(ackstring) - 1;
 static const char daikatanagetserversstring[] = OOB_SEQ "getservers daikatana";
 static const int daikatanagetserverslen = sizeof(daikatanagetserversstring) - 1;
 
+static const char printstring[] = OOB_SEQ "print";
+static const int printstringlen = sizeof(printstring) - 1;
+
 /* FS: Need these two for Parse_UDP_MS_List because of the strlwr in AddServer */
 static char quakeworld[] = "quakeworld";
 static char quake2[] = "quake2";
@@ -1236,10 +1239,48 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 	free(buff);
 }
 
+static bool InGameSpyFilterStr (const char *key, const char *val, const char *kvp)
+{
+	char *temp = NULL;
+
+	if (!key || !val || !kvp)
+		return true;
+
+	temp = Info_ValueForKey(kvp, key);
+	if (temp)
+	{
+		if (!stricmp(val, temp))
+			return true;
+
+		return false;
+	}
+
+	return true;
+}
+
+static bool InGameSpyFilterInt (const char *key, int val, const char *kvp)
+{
+	char *temp = NULL;
+
+	if (!key || !val || !kvp)
+		return true;
+
+	temp = Info_ValueForKey(kvp, key);
+	if (temp)
+	{
+		if (atoi(temp) == val)
+			return true;
+
+		return false;
+	}
+
+	return true;
+}
+
 /* GameSpy BASIC data is in the form of '\ip\1.2.3.4:1234\ip\1.2.3.4:1234\final\'
  * GameSpy non-basic data is in the form of '<sin_addr><sin_port>\final\'
  */
-static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const char *challengeKey, unsigned short encType, struct sockaddr_in *from, bool bCompressed)
+static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const char *challengeKey, unsigned short encType, struct sockaddr_in *from, bool bCompressed, gamespy_filter_t *filter)
 {
 	unsigned char	*buff;
 	int				buflen = 0;
@@ -1278,6 +1319,33 @@ static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const 
 
 		if (server->heartbeats >= minimumHeartbeats && !server->shutdown_issued && server->validated && !stricmp(server->gamename, gamename))
 		{
+			if (filter)
+			{
+				if (filter->mapname[0])
+				{
+					if (!InGameSpyFilterStr("mapname", filter->mapname, server->serverInfo))
+						continue;
+				}
+
+				if (filter->gamemode[0])
+				{
+					if (!InGameSpyFilterStr("gamemode", filter->gamemode, server->serverInfo))
+						continue;
+				}
+
+				if (filter->gametype[0])
+				{
+					if (!InGameSpyFilterStr("gametype", filter->gametype, server->serverInfo))
+						continue;
+				}
+
+				if (filter->location)
+				{
+					if (!InGameSpyFilterInt("location", filter->location, server->serverInfo))
+						continue;
+				}
+			}
+
 			ip = inet_ntoa(server->ip.sin_addr);
 
 			if (bCompressed)
@@ -1591,9 +1659,13 @@ static void Ack (struct sockaddr_in *from, char* dataPacket, size_t dglen)
 				|| !stricmp(server->gamename, "hexenworld")
 				|| !stricmp(server->gamename, "hexen2"))
 			{
-				if (dglen > 6)
+				if ((dglen > 6) && (dataPacket != NULL))
 				{
-					if (!memcmp(dataPacket, hexen2serverinforeplystring, sizeof(hexen2serverinforeplystring) - 1))
+					if (!memcmp(dataPacket, printstring, printstringlen) && (dglen - printstringlen > 0))
+					{
+						DG_strlcpy(server->serverInfo, dataPacket + printstringlen, dglen - printstringlen);
+					}
+					else if (!memcmp(dataPacket, hexen2serverinforeplystring, sizeof(hexen2serverinforeplystring) - 1))
 					{
 						Parse_NQData(dataPacket, server, dglen, sizeof(hexen2serverinforeplystring));
 					}
@@ -1608,6 +1680,10 @@ static void Ack (struct sockaddr_in *from, char* dataPacket, size_t dglen)
 			else
 			{
 				server->validated = GameSpy_Challenge_Cross_Check(server->challengeKey, dataPacket, server->challengeKey, 1, GAMESPY_ENCTYPE0);
+				if (dataPacket != NULL)
+				{
+					DG_strlcpy(server->serverInfo, dataPacket, dglen);
+				}
 			}
 
 			server->queued_pings = 0;
@@ -2495,35 +2571,6 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 
 		ret += 19;
 		gamename = GSM_strtok_r(ret, "\\\n", &queryPtr);
-
-		/* FS: SmartSpy filters for GS3D.  Need to cache server data before it can be useful. */
-		if (queryPtr)
-		{
-			temp = Info_ValueForKey(queryPtr, "mapname");
-			if (temp)
-			{
-				DG_strlcpy(filter.mapname, temp, sizeof(filter.mapname));
-			}
-
-			temp = Info_ValueForKey(queryPtr, "gametype");
-			if (temp)
-			{
-				DG_strlcpy(filter.gametype, temp, sizeof(filter.gametype));
-			}
-
-			temp = Info_ValueForKey(queryPtr, "gamemode");
-			if (temp)
-			{
-				DG_strlcpy(filter.gamemode, temp, sizeof(filter.gamemode));
-			}
-
-			temp = Info_ValueForKey(queryPtr, "location");
-			if (temp)
-			{
-				filter.location = atoi(temp);
-			}
-		}
-
 		bCompressed = true;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
@@ -2567,7 +2614,41 @@ error:
 		Log_Sucessful_TCP_Connections(logBuffer);
 	}
 
-	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, bCompressed);
+	/* FS: SmartSpy filters for GS3D.  Need to cache server data before it can be useful. */
+	if (queryPtr)
+	{
+		temp = Info_ValueForKey(queryPtr, "mapname");
+		if (temp)
+		{
+			DG_strlcpy(filter.mapname, temp, sizeof(filter.mapname));
+		}
+
+		temp = Info_ValueForKey(queryPtr, "gametype");
+		if (temp)
+		{
+			DG_strlcpy(filter.gametype, temp, sizeof(filter.gametype));
+		}
+
+		temp = Info_ValueForKey(queryPtr, "gamemode");
+		if (temp)
+		{
+			DG_strlcpy(filter.gamemode, temp, sizeof(filter.gamemode));
+		}
+
+		temp = Info_ValueForKey(queryPtr, "location");
+		if (temp)
+		{
+			filter.location = atoi(temp);
+		}
+
+		temp = Info_ValueForKey(queryPtr, "where");
+		if (temp)
+		{
+			DG_strlcpy(filter.advancedQuery, temp, sizeof(filter.advancedQuery));
+		}
+	}
+
+	SendGameSpyListToClient(socket, gamename, challengeKey, encType, from, bCompressed, &filter);
 }
 
 static bool GameSpy_Challenge_Cross_Check (char *challengePacket, char *validatePacket, char *challengeKey, int rawsecurekey, unsigned short enctype)

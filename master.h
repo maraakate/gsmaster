@@ -125,6 +125,7 @@ struct server_s
 	char	gamename[MAX_GAMENAME_LEN];
 	char	challengeKey[64]; /* FS: Needed for GameSpy validation. */
 	char	hostnameIp[MAX_DNS_NAMELEN+1];
+	char	serverInfo[4000];
 	netquake_data_t	nqData;
 };
 
@@ -136,6 +137,7 @@ struct gamespy_filter_s
 	char	gamemode[64];
 	char	mapname[64];
 	int		location;
+	char	advancedQuery[4000];
 };
 
 void ParseCommandLine (int argc, char **argv);
