@@ -123,6 +123,8 @@ static const char statusstring[] = "\\status\\secure\\";
 static const char quakeworldquake2statusstring[] = OOB_SEQ "status"; /* FS: QW and Q2 use this */
 static const char quake1querystring[] = "\x80\x00\x00\x0C\x02" "QUAKE" "\x00"; /* FS: Raw data that's sent down for a "QUAKE" query string.  NOTE HAS A TRAILING ZERO! OTHERS DO NOT! */
 static const char hexen2querystring[] = "\x80\x00\x00\x0D\x02" "HEXENII"; /* FS: Raw data that's sent down for a "HEXENII" query string */
+static const char quake1serverinforeplystring[] = "\x80\x00\x00\x3F\x83";
+static const char hexen2serverinforeplystring[] = "\x80\x00\x00\x33\x83";
 static const char hexenworldstatusstring[] = OOB_SEQ "\xff" "status"; /* FS: HW wants an extra 0xff */
 static const char challengeHeader[] = "\\basic\\\\secure\\"; /* FS: This is the start of the handshake */
 
@@ -136,6 +138,7 @@ static const int daikatanagetserverslen = sizeof(daikatanagetserversstring) - 1;
 static char quakeworld[] = "quakeworld";
 static char quake2[] = "quake2";
 static char hexenworld[] = "hexenworld";
+static char kingpin[] = "kingpin";
 
 /* FS: Re-adapted from uhexen2 */
 static const unsigned char hw_hwq_msg[] =
@@ -146,6 +149,9 @@ static const unsigned char hw_gspy_msg[] =
 
 static const unsigned char qw_msg[] =
 		{ S2C_CHALLENGE, '\n' };
+
+static const unsigned char kp_msg[] =
+		{ 255, 255, S2C_CHALLENGE, '\0' };
 
 static const unsigned char hw_server_msg[] =
 		{ 255, A2A_PING, '\0' };
@@ -173,6 +179,9 @@ static const unsigned char qw_server_shutdown[] =
 
 static const unsigned char qspy_req_msg[] =
 		{ 'D', '\n' };
+
+static const unsigned char kp_reply_hdr[] =
+		{ 255, 255, 255, 255, 255, 255, M2C_SERVERLST, '\n' };
 
 static const unsigned char hw_reply_hdr[] =
 		{ 255, 255, 255, 255, 255, M2C_SERVERLST, '\n' };
@@ -1141,6 +1150,17 @@ static void SendUDPServerListToClient (struct sockaddr_in *from, const char *gam
 		}
 		memcpy(udpheader, hw_reply_hdr, udpheadersize);
 	}
+	else if (!stricmp(gamename, "kingpin"))
+	{
+		udpheadersize = sizeof(kp_reply_hdr);
+		udpheader = (char *)calloc(1, udpheadersize);
+		if (!udpheader)
+		{
+			Con_DPrintf("Fatal Error: memory allocation failed in SendUDPServerListToClient\n");
+			return;
+		}
+		memcpy(udpheader, kp_reply_hdr, udpheadersize);
+	}
 	else if (!stricmp(gamename, "quakeworld"))
 	{
 		udpheadersize = sizeof(qw_reply_hdr);
@@ -1485,7 +1505,65 @@ static void SendGameSpyListToClient (SOCKET socket, const char *gamename, const 
 				numservers); /* on record */
 }
 
-static void Ack (struct sockaddr_in *from, char* dataPacket)
+/* FS: This is stupid, but does what it needs to do so... */
+static void Parse_NQData (char *data, server_t *server, size_t dglen, size_t offset)
+{
+	size_t len = 0;
+	size_t totallen = 0;
+
+	if (!data || !server)
+		return;
+
+	data += offset - 1;
+	len = strlen(data);
+	if (len > 0)
+	{
+		strcpy(server->nqData.ip, data);
+		if (len + 1 < dglen)
+		{
+			data += len + 1;
+			len = strlen(data);
+			if (len > 0)
+			{
+				totallen += len;
+				if (totallen < dglen)
+				{
+					strcpy(server->nqData.hostname, data);
+					data += len + 1;
+					len = strlen(data);
+					if (len > 0)
+					{
+						totallen += len;
+						if (totallen < dglen)
+						{
+							strcpy(server->nqData.mapname, data);
+							data += len + 1;
+							totallen++;
+							if (totallen < dglen)
+							{
+								server->nqData.users = data[0];
+								data++;
+								totallen++;
+								if (totallen < dglen)
+								{
+									server->nqData.maxusers = data[0];
+									data++;
+									totallen++;
+									if (totallen < dglen)
+									{
+										server->nqData.protocol = data[0];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+static void Ack (struct sockaddr_in *from, char* dataPacket, size_t dglen)
 {
 	server_t	*server = &servers;
 
@@ -1497,7 +1575,8 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 		//a match!
 		if (*(int *)&from->sin_addr == *(int *)&server->ip.sin_addr && from->sin_port == server->port)
 		{
-			Con_DPrintf("[I] ack from %s:%u (%d)(%d).\n",
+			Con_DPrintf("[I] ack from %s server %s:%u (%d)(%d).\n",
+				server->gamename,
 				inet_ntoa(server->ip.sin_addr),
 				htons(server->port),
 				server->queued_pings,
@@ -1512,6 +1591,18 @@ static void Ack (struct sockaddr_in *from, char* dataPacket)
 				|| !stricmp(server->gamename, "hexenworld")
 				|| !stricmp(server->gamename, "hexen2"))
 			{
+				if (dglen > 6)
+				{
+					if (!memcmp(dataPacket, hexen2serverinforeplystring, sizeof(hexen2serverinforeplystring) - 1))
+					{
+						Parse_NQData(dataPacket, server, dglen, sizeof(hexen2serverinforeplystring));
+					}
+					else if (!memcmp(dataPacket, quake1serverinforeplystring, sizeof(quake1serverinforeplystring) - 1))
+					{
+						Parse_NQData(dataPacket, server, dglen, sizeof(quake1serverinforeplystring));
+					}
+				}
+
 				server->validated = 1;
 			}
 			else
@@ -1732,6 +1823,13 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 			Parse_UDP_MS_List(mslist, quake2, dglen-sizeof(q2_reply_hdr));
 			return;
 		}
+		else if (!strnicmp(data, (char *)kp_reply_hdr, sizeof(kp_reply_hdr) - 1))
+		{
+			Con_DPrintf("[I] Got a Kingpin master server list!\n");
+			mslist += sizeof(kp_reply_hdr) - 1;
+			Parse_UDP_MS_List(mslist, kingpin, dglen - sizeof(kp_reply_hdr));
+			return;
+		}
 		else if (!strnicmp(data, (char *)hw_reply_hdr, sizeof(hw_reply_hdr)-1))
 		{
 			Con_DPrintf("[I] Got a HexenWorld master server list!\n");
@@ -1819,7 +1917,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	}
 	else if (!strnicmp(cmd, "ack", 3))
 	{
-		Ack(from, data);
+		Ack(from, data, dglen);
 	}
 	else if (!strnicmp(cmd, "shutdown", 8))
 	{
@@ -1829,7 +1927,7 @@ static void ParseResponse (struct sockaddr_in *from, char *data, int dglen)
 	{
 		// Con_DPrintf("[W] Unknown command from %s!\n", inet_ntoa(from->sin_addr));
 		/* FS: Assume anything else passed in here is some ack from a heartbeat or \\status\\secure\\<key> */
-		Ack(from, data);
+		Ack(from, data, dglen);
 	}
 }
 
@@ -2376,8 +2474,10 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 {
 	char *gamename = NULL;
 	char *ret = NULL;
+	char *temp = NULL;
 	char logBuffer[2048];
 	char *queryPtr;
+	gamespy_filter_t filter = { 0 };
 	bool bCompressed = false;
 
 	if (!querystring || !strstr(querystring, "\\list\\") || !strstr(querystring, "\\gamename\\"))
@@ -2395,6 +2495,35 @@ static void GameSpy_Parse_List_Request (char *clientName, char *querystring, cha
 
 		ret += 19;
 		gamename = GSM_strtok_r(ret, "\\\n", &queryPtr);
+
+		/* FS: SmartSpy filters for GS3D.  Need to cache server data before it can be useful. */
+		if (queryPtr)
+		{
+			temp = Info_ValueForKey(queryPtr, "mapname");
+			if (temp)
+			{
+				DG_strlcpy(filter.mapname, temp, sizeof(filter.mapname));
+			}
+
+			temp = Info_ValueForKey(queryPtr, "gametype");
+			if (temp)
+			{
+				DG_strlcpy(filter.gametype, temp, sizeof(filter.gametype));
+			}
+
+			temp = Info_ValueForKey(queryPtr, "gamemode");
+			if (temp)
+			{
+				DG_strlcpy(filter.gamemode, temp, sizeof(filter.gamemode));
+			}
+
+			temp = Info_ValueForKey(queryPtr, "location");
+			if (temp)
+			{
+				filter.location = atoi(temp);
+			}
+		}
+
 		bCompressed = true;
 		Con_DPrintf("[I] Sending compressed TCP list for %s\n", gamename);
 	}
@@ -3241,6 +3370,10 @@ static void Master_DL_List (const char *filename)
 			sendto(listener, (char *)q2_msg_noOOB, sizeof(q2_msg_noOOB), 0, (struct sockaddr *)&from, sizeof(from));
 			sendto(listener, (char *)q2_msg_alternate_noOOB, sizeof(q2_msg_alternate_noOOB), 0, (struct sockaddr *)&from, sizeof(from));
 		}
+		else if (!stricmp(listToken, "kingpin"))
+		{
+			sendto(listener, (char *)kp_msg, sizeof(kp_msg), 0, (struct sockaddr *)&from, sizeof(from));
+		}
 		else
 		{
 			Con_DPrintf("[E] Invalid gamename for Master Server Query: %s!\n", listToken);
@@ -3291,6 +3424,10 @@ static void Parse_UDP_MS_List (unsigned char *tmp, const char *gamename, int siz
 	while (size >= 6)
 	{
 		port = ntohs(tmp[4] + (tmp[5] << 8));
+		if (!stricmp(gamename, "kingpin")) /* FS: hypov8 is sending the regular part, not the query so subtract. */
+		{
+			port -= 10;
+		}
 
 		Com_sprintf(ip, sizeof(ip), "%u.%u.%u.%u", tmp[0], tmp[1], tmp[2], tmp[3]);
 

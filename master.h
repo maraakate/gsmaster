@@ -94,6 +94,19 @@ void signal_handler(int sig);
 
 #define GSPY_DB_VERSION 1
 
+#define NETQUAKE_MAXSTR	64
+typedef struct netquake_data_s netquake_data_t;
+
+struct netquake_data_s
+{
+	char	ip[NETQUAKE_MAXSTR];
+	char	hostname[NETQUAKE_MAXSTR];
+	char	mapname[NETQUAKE_MAXSTR];
+	int		users;
+	int		maxusers;
+	int		protocol;
+};
+
 typedef struct server_s server_t;
 
 struct server_s
@@ -112,6 +125,17 @@ struct server_s
 	char	gamename[MAX_GAMENAME_LEN];
 	char	challengeKey[64]; /* FS: Needed for GameSpy validation. */
 	char	hostnameIp[MAX_DNS_NAMELEN+1];
+	netquake_data_t	nqData;
+};
+
+typedef struct gamespy_filter_s gamespy_filter_t;
+
+struct gamespy_filter_s
+{
+	char	gametype[64];
+	char	gamemode[64];
+	char	mapname[64];
+	int		location;
 };
 
 void ParseCommandLine (int argc, char **argv);
