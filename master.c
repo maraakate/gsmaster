@@ -599,7 +599,7 @@ int gsmaster_main (int argc, char **argv)
 
 		CURL_HTTP_Update();
 
-		if ((double)time(NULL) - lastMasterListDL > MASTERLISTDLTIME) /* FS: Every hour get a new serverlist from QTracker */
+		if ((double)time(NULL) - lastMasterListDL > MASTERLISTDLTIME) /* FS: Every 15 minutes scrape the HTTP and UDP master servers out there.  */
 		{
 			HTTP_DL_List();
 
