@@ -97,3 +97,10 @@ Credits
 - QwazyWabbit - Original Code for Q2Master
 - Sezero - Portable SOCKET defines, HexenWorld query, and other small code snips
 - ID Software - Quake 2 Info_ValueForKeys and other small helper functions
+
+Tools Used
+- Cppcheck -- (http://cppcheck.net/)
+- GCC -- (https://gcc.gnu.org/)
+- Microsoft Visual Studio 2005 -- (https://visualstudio.microsoft.com/)
+- Microsoft Visual Studio 2019 -- (https://visualstudio.microsoft.com/)
+- PVS Studio -- (https://pvs-studio.com/)
