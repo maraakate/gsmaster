@@ -50,7 +50,12 @@ static SERVICE_STATUS_HANDLE   MyServiceStatusHandle;
 //#define HOSTNAME_AND_LOCALHOST_HACK
 #ifdef HOSTNAME_AND_LOCALHOST_HACK
 static const char HostnameHack[] = "Maraakate.org";
-#endif
+#endif // HOSTNAME_AND_LOCALHOST_HACK
+
+#define MARAAKATE_ORG_HACK
+#ifdef MARAAKATE_ORG_HACK
+static const char maraakate_org_ip[] = "52.240.58.168";
+#endif // MARAAKATE_ORG_HACK
 
 // for debugging as a console application in Windows or in Linux
 int debug;
@@ -2610,8 +2615,15 @@ error:
 
 	if (bLogTCP)
 	{
-		Com_sprintf(logBuffer, sizeof(logBuffer), "Sucessful GameSpy request to %s for %s from %s:%d\n", clientName, gamename, inet_ntoa(from->sin_addr), ntohs(from->sin_port));
-		Log_Sucessful_TCP_Connections(logBuffer);
+#ifdef MARAAKATE_ORG_HACK
+		if (strcmp(inet_ntoa(from->sin_addr), maraakate_org_ip) && strcmp(inet_ntoa(from->sin_addr), "127.0.0.1")) /* FS: Don't spam the internal logs with this. */
+		{
+#endif // MARAAKATE_ORG_HACK
+			Com_sprintf(logBuffer, sizeof(logBuffer), "Sucessful GameSpy request to %s for %s from %s:%d\n", clientName, gamename, inet_ntoa(from->sin_addr), ntohs(from->sin_port));
+			Log_Sucessful_TCP_Connections(logBuffer);
+#ifdef MARAAKATE_ORG_HACK
+		}
+#endif // MARAAKATE_ORG_HACK
 	}
 
 	/* FS: SmartSpy filters for GS3D.  Need to cache server data before it can be useful. */
